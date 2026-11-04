@@ -98,6 +98,7 @@ function Find-ORing {
         }
 
         [pscustomobject]@{
+            Series    = $r.Series
             Name      = $r.Name
             D1        = $r.D1
             D2        = $r.D2
@@ -123,10 +124,13 @@ function Find-ORing {
                elseif ($hasOuter) { { [math]::Abs($_.Squeeze - $mid) } }
                else { { $FillMax - $_.Fill } }
 
-    $candidates = @($evaluated |
-        Where-Object { $_.StretchOk -and $_.SqueezeOk -and $_.FillOk } |
-        Sort-Object $sortKey |
-        Select-Object -First $MaxResults)
+    # 系列ごと（P → G）に最大 $MaxResults 件ずつ
+    $candidates = @(foreach ($s in $c.Series) {
+        $evaluated |
+            Where-Object { $_.Series -eq $s -and $_.StretchOk -and $_.SqueezeOk -and $_.FillOk } |
+            Sort-Object $sortKey |
+            Select-Object -First $MaxResults
+    })
 
     $reasons = @()
     if ($candidates.Count -eq 0) {

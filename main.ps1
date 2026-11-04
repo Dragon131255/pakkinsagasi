@@ -22,7 +22,7 @@ $colBg     = RGB '#F3F6FB'
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'パッキン探し（JIS B 2401 Oリング）'
-$form.ClientSize = New-Object System.Drawing.Size(745, 600)
+$form.ClientSize = New-Object System.Drawing.Size(745, 740)
 $form.StartPosition = 'CenterScreen'
 $form.Font = New-Object System.Drawing.Font('Yu Gothic UI', 10)
 $form.FormBorderStyle = 'FixedSingle'
@@ -230,7 +230,7 @@ $cmbBR.Add_SelectedIndexChanged({ $fig.Invalidate() })
 
 $list = New-Object System.Windows.Forms.ListView
 $list.Location = New-Object System.Drawing.Point(20, 285)
-$list.Size = New-Object System.Drawing.Size(705, 160)
+$list.Size = New-Object System.Drawing.Size(705, 300)
 $list.View = 'Details'
 $list.FullRowSelect = $true
 $list.GridLines = $true
@@ -243,7 +243,7 @@ $list.GridLines = $true
 $form.Controls.Add($list)
 
 $msg = New-Object System.Windows.Forms.TextBox
-$msg.Location = New-Object System.Drawing.Point(20, 455)
+$msg.Location = New-Object System.Drawing.Point(20, 595)
 $msg.Size = New-Object System.Drawing.Size(705, 130)
 $msg.BackColor = RGB '#FFF8E1'
 $msg.Multiline = $true
@@ -273,8 +273,18 @@ $btn.Add_Click({
         $br = @('None', 'One', 'Both')[$cmbBR.SelectedIndex]
         $result = Find-ORing -GrooveInner $inner -GrooveOuter $outer -GrooveWidth $width -Use $use -Table $table -BackupRing $br
 
+        # P系列・G系列をグループに分けて表示
+        $list.Groups.Clear()
+        $groups = @{}
+        foreach ($s in @($result.Candidates | ForEach-Object { $_.Series } | Select-Object -Unique)) {
+            $n = @($result.Candidates | Where-Object { $_.Series -eq $s }).Count
+            $groups[$s] = $list.Groups.Add($s, "$s系列（$n 件）")
+        }
+        $rank = @{}
         foreach ($r in $result.Candidates) {
+            $i = [int]$rank[$r.Series]; $rank[$r.Series] = $i + 1
             $item = New-Object System.Windows.Forms.ListViewItem($r.Name)
+            $item.Group = $groups[$r.Series]
             [void]$item.SubItems.Add(('{0:N1}' -f $r.D2))
             [void]$item.SubItems.Add(('{0:N1}' -f $r.D1))
             # 溝設計の標準寸法（公差）
@@ -282,11 +292,11 @@ $btn.Add_Click({
                 $v = if ($null -ne $pair[0]) { '{0:0.0#}' -f $pair[0] } else { '—' }
                 [void]$item.SubItems.Add("$v（$($pair[1])）")
             }
-            # 1位は緑、以降は1行おきに薄い青
-            $item.BackColor = if ($list.Items.Count -eq 0) { RGB '#C8E6C9' }
-                              elseif ($list.Items.Count % 2 -eq 1) { RGB '#E3F2FD' }
+            # 各系列の1位は緑、以降は1行おきに薄い青
+            $item.BackColor = if ($i -eq 0) { RGB '#C8E6C9' }
+                              elseif ($i % 2 -eq 1) { RGB '#E3F2FD' }
                               else { [System.Drawing.Color]::White }
-            if ($list.Items.Count -eq 0) { $item.Font = New-Object System.Drawing.Font('Yu Gothic UI', 10, [System.Drawing.FontStyle]::Bold) }
+            if ($i -eq 0) { $item.Font = New-Object System.Drawing.Font('Yu Gothic UI', 10, [System.Drawing.FontStyle]::Bold) }
             [void]$list.Items.Add($item)
         }
 
@@ -300,7 +310,7 @@ $btn.Add_Click({
             $order = if ($null -ne $inner) { '内径の伸びが小さい順' }
                      elseif ($null -ne $outer) { 'つぶし率が推奨範囲の中央に近い順' }
                      else { '溝充填率が上限に近い順' }
-            $lines += "$($result.Candidates.Count) 件見つかりました（$order）。"
+            $lines += "$($result.Candidates.Count) 件見つかりました（系列ごとに最大 $MaxResults 件、$order）。"
         }
         $msg.Text = $lines -join "`r`n"
     } catch {

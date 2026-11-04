@@ -9,8 +9,9 @@ Describe 'Find-ORing' {
     It '固定用：G25 の溝で G25 が先頭に出る' {
         $r = Find-ORing -GrooveInner 25 -GrooveOuter 30 -GrooveWidth 4.1 -Use Static -Table $table
         $r.GrooveDepth | Should Be 2.5
-        $r.Candidates[0].Name | Should Be 'G25'
-        [math]::Round($r.Candidates[0].Squeeze, 1) | Should Be 19.4
+        $g = @($r.Candidates | Where-Object { $_.Series -eq 'G' })
+        $g[0].Name | Should Be 'G25'
+        [math]::Round($g[0].Squeeze, 1) | Should Be 19.4
     }
 
     It '運動用：P20 の溝で P20 が出て、G系列は出ない' {
@@ -19,9 +20,12 @@ Describe 'Find-ORing' {
         @($r.Candidates | Where-Object { $_.Name -like 'G*' }).Count | Should Be 0
     }
 
-    It '候補は最大5件' {
+    It '候補は系列ごとに最大5件で、P → G の順に並ぶ' {
         $r = Find-ORing -GrooveInner 100 -GrooveOuter 108 -GrooveWidth 7.5 -Use Static -Table $table
-        $r.Candidates.Count -le 5 | Should Be $true
+        @($r.Candidates | Where-Object { $_.Series -eq 'P' }).Count -le 5 | Should Be $true
+        @($r.Candidates | Where-Object { $_.Series -eq 'G' }).Count -le 5 | Should Be $true
+        $s = @($r.Candidates | ForEach-Object { $_.Series })
+        ($s -join '') -match '^P*G*$' | Should Be $true
     }
 
     It '合わないときは理由を返す' {
@@ -50,7 +54,7 @@ Describe 'Find-ORing' {
 
     It 'つぶし率の範囲判定なし：G300 の溝（つぶし率 12.3%）で G300 が出る' {
         $r = Find-ORing -GrooveInner 300 -GrooveOuter 310 -GrooveWidth 7.5 -Use Static -Table $table
-        $r.Candidates[0].Name | Should Be 'G300'
+        @($r.Candidates | Where-Object { $_.Series -eq 'G' })[0].Name | Should Be 'G300'
     }
 
     It '溝幅だけ：充填率 85% 以下の候補が出る' {
@@ -61,8 +65,9 @@ Describe 'Find-ORing' {
 
     It 'バックアップリング両側：G25 の BR両側溝（7.3）で G25 が出て、標準溝幅 7.3 を返す' {
         $r = Find-ORing -GrooveInner 25 -GrooveOuter 30 -GrooveWidth 7.3 -Use Static -Table $table -BackupRing Both
-        $r.Candidates[0].Name | Should Be 'G25'
-        $r.Candidates[0].StdWidth | Should Be 7.3
+        $g = @($r.Candidates | Where-Object { $_.Series -eq 'G' })
+        $g[0].Name | Should Be 'G25'
+        $g[0].StdWidth | Should Be 7.3
     }
 
     It 'バックアップリング両側：BRなしの溝幅（4.1）では G25 は充填率オーバーで出ない' {
