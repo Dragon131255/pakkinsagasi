@@ -96,6 +96,13 @@ Describe 'Find-ORing' {
 
 Describe 'Find-Packing' {
     $ptable = @(Get-PackingTable -Path "$root\data\sakagami_hydraulic.csv")
+    $allProducts = @('GPY', 'GNY', 'RGY', 'RNY', 'ⓉSGY', 'ⓉSNY', 'SKY', 'KY')
+
+    It '製品を指定しないときは Config.ps1 の $PackingProducts（今は SKY だけ）が出る' {
+        $r = Find-Packing -GrooveInner 40 -GrooveOuter 50 -Table $ptable
+        $r.Candidates.Count -gt 0 | Should Be $true
+        @($r.Candidates | Where-Object { $PackingProducts -notcontains $_.Product }).Count | Should Be 0
+    }
 
     It 'サイズ表を読める（8製品・484サイズ）' {
         $ptable.Count | Should Be 484
@@ -103,7 +110,7 @@ Describe 'Find-Packing' {
     }
 
     It 'd30・D40・溝幅7：寸法がぴったりのサイズが製品ごとに出る' {
-        $r = Find-Packing -GrooveInner 30 -GrooveOuter 40 -GrooveWidth 7 -Table $ptable
+        $r = Find-Packing -GrooveInner 30 -GrooveOuter 40 -GrooveWidth 7 -Table $ptable -Products $allProducts
         $codes = @($r.Candidates | ForEach-Object { $_.Code })
         $codes -contains 'GPY-40'  | Should Be $true
         $codes -contains 'GNY-30'  | Should Be $true
@@ -112,12 +119,12 @@ Describe 'Find-Packing' {
     }
 
     It '製品ごとに最大2件' {
-        $r = Find-Packing -GrooveWidth 7 -Table $ptable
+        $r = Find-Packing -GrooveWidth 7 -Table $ptable -Products $allProducts
         $r.Candidates | Group-Object Product | ForEach-Object { $_.Count -le 2 | Should Be $true }
     }
 
     It 'バックアップリングありは GB の溝幅で判定し、バックアップのコードを返す' {
-        $r = Find-Packing -GrooveInner 40 -GrooveOuter 50 -GrooveWidth 9 -BackupRing One -Table $ptable
+        $r = Find-Packing -GrooveInner 40 -GrooveOuter 50 -GrooveWidth 9 -BackupRing One -Table $ptable -Products $allProducts
         $g = @($r.Candidates | Where-Object { $_.Product -eq 'GPY' })
         $g[0].Code   | Should Be 'GPY-50'
         $g[0].Width  | Should Be 9
@@ -125,18 +132,18 @@ Describe 'Find-Packing' {
     }
 
     It '許容差を超えると出ない' {
-        $r = Find-Packing -GrooveInner 30.6 -GrooveOuter 40 -Table $ptable
+        $r = Find-Packing -GrooveInner 30.6 -GrooveOuter 40 -Table $ptable -Products $allProducts
         @($r.Candidates | Where-Object { $_.D1 -eq 30 }).Count | Should Be 0
     }
 
     It '合わないときは理由を返す' {
-        $r = Find-Packing -GrooveInner 3 -GrooveOuter 3.5 -Table $ptable
+        $r = Find-Packing -GrooveInner 3 -GrooveOuter 3.5 -Table $ptable -Products $allProducts
         $r.Candidates.Count | Should Be 0
         $r.Reasons.Count -gt 0 | Should Be $true
     }
 
     It '公差：寸法指示図どおり、はめあい記号は ISO 286 の数値にする' {
-        $r = Find-Packing -GrooveInner 40 -GrooveOuter 50 -Table $ptable
+        $r = Find-Packing -GrooveInner 40 -GrooveOuter 50 -Table $ptable -Products $allProducts
         $g = @($r.Candidates | Where-Object { $_.Code -eq 'GPY-50' })[0]
         $g.TolInner | Should Be 'h8 0 / -0.039'
         $g.TolOuter | Should Be 'H9 +0.062 / 0'
@@ -155,6 +162,6 @@ Describe 'Find-Packing' {
     }
 
     It '外径が内径以下ならエラー' {
-        { Find-Packing -GrooveInner 40 -GrooveOuter 30 -Table $ptable } | Should Throw
+        { Find-Packing -GrooveInner 40 -GrooveOuter 30 -Table $ptable -Products $allProducts } | Should Throw
     }
 }

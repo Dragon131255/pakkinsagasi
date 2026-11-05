@@ -232,7 +232,9 @@ function Find-Packing {
         [Nullable[double]]$GrooveWidth,
         [Parameter(Mandatory)][object[]]$Table,
         # サイズ表の溝幅は「バックアップリングなし（GA）」と「あり（GB）」の2種類。片側・両側はどちらも GB で判定する
-        [ValidateSet('None', 'One', 'Both')][string]$BackupRing = 'None'
+        [ValidateSet('None', 'One', 'Both')][string]$BackupRing = 'None',
+        # 検索対象の製品（省略時は Config.ps1 の $PackingProducts）
+        [string[]]$Products = $PackingProducts
     )
     $hasInner = $null -ne $GrooveInner
     $hasOuter = $null -ne $GrooveOuter
@@ -259,6 +261,7 @@ function Find-Packing {
 
     $i = 0
     $matched = foreach ($r in $Table) {
+        if ($Products -notcontains $r.Product) { $i++; continue }
         $i++
         $w = if ($withBR) { $r.GB } else { $r.GA }
         $dev = 0.0
