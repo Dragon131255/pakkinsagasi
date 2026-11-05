@@ -56,7 +56,7 @@
   - 列名を d / D にしないこと（Import-Csv は大文字小文字を区別せず重複扱いになる）
 - 判定：d・D・溝幅それぞれ、表の値との差が許容差以内（`Config.ps1` の `$PackingDiaTol`・`$PackingWidthTol`、初期値 0.5mm）。BR なし→GA、片側・両側→GB で比べる（表に両側の溝幅はない）
 - 出力：製品ごとに最大 `$MaxResults` 件、寸法の差が小さい順
-- 検索結果に出す製品は `Config.ps1` の `$PackingProducts`（と search.js の `PackingProducts`）。**2026-11-05 から一時的に SKY だけ**（ユーザー指示）。サイズ表のデータは8製品とも残している
+- 検索結果に出す製品は `Config.ps1` の `$PackingProducts`（と search.js の `PackingProducts`）。**2026-11-05 から一時的に SKY・KY だけ**（ユーザー指示）。サイズ表のデータは8製品とも残している
 - 公差：d・D・溝幅に公差を付けて表示する。公差の指定は `Config.ps1` の `$PackingTolerance`（出典：各製品ページの寸法指示図、2026-11-05 確認）
   - はめあい記号（H8・H9・h8・f8）は ISO 286（JIS B 0401）の表（`$FitIT8` など、1600mm まで）から数値にする
   - SKY・KY は両用なので、ピストンに使う場合とロッドに使う場合の公差を両方表示する

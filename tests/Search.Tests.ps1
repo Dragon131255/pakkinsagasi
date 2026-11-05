@@ -98,7 +98,7 @@ Describe 'Find-Packing' {
     $ptable = @(Get-PackingTable -Path "$root\data\sakagami_hydraulic.csv")
     $allProducts = @('GPY', 'GNY', 'RGY', 'RNY', 'ⓉSGY', 'ⓉSNY', 'SKY', 'KY')
 
-    It '製品を指定しないときは Config.ps1 の $PackingProducts（今は SKY だけ）が出る' {
+    It '製品を指定しないときは Config.ps1 の $PackingProducts（今は SKY・KY だけ）が出る' {
         $r = Find-Packing -GrooveInner 40 -GrooveOuter 50 -Table $ptable
         $r.Candidates.Count -gt 0 | Should Be $true
         @($r.Candidates | Where-Object { $PackingProducts -notcontains $_.Product }).Count | Should Be 0
