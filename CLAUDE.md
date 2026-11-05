@@ -54,6 +54,8 @@ pakkinsagasi/
 ├─ main.ps1         # 画面（WinForms）
 ├─ Search.ps1       # 計算・判定・並べ替え（画面に依存しない）
 ├─ Config.ps1       # 判定基準の定数
+├─ index.html       # Web版の画面（スマホ用。GitHub Pages で公開）
+├─ search.js        # Web版の計算（Search.ps1 + Config.ps1 を JavaScript にしたもの）
 ├─ data/
 │  └─ oring_jis_b2401.csv
 └─ tests/
@@ -64,6 +66,8 @@ pakkinsagasi/
 - 計算処理（Search.ps1）と画面（main.ps1）を分ける。計算はテストで確認できるようにする
 - 規格表の数値は JIS B 2401 の原本から転記し、推測で埋めない
 - 入力値が不正（0以下、外径 ≤ 内径など）のときは画面でエラーを表示する
+- Web版（index.html / search.js）は PowerShell 版と同じ計算をする。判定基準・計算式を変えるときは `Config.ps1`・`Search.ps1` と `search.js` の両方を直す
+  - 規格表は Web版も `data/oring_jis_b2401.csv` を読む（fetch するため、ローカルではファイルを直接開かず HTTP サーバー経由で確認する）
 
 ## 未決事項
 - 判定基準の値と規格表の数値を JIS B 2401 本文で最終確認する
