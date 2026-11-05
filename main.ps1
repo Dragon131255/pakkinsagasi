@@ -150,6 +150,22 @@ $fig.Add_Paint({
     $g.SmoothingMode = 'AntiAlias'
     $g.TextRenderingHint = 'ClearTypeGridFit'
 
+    # 阪上パッキンのときは阪上製作所の SKY の寸法指示図を出す（クリックでピストン用／ロッド用を切り替え）
+    if ($cmbKind.SelectedIndex -eq 1) {
+        $img = if ($script:figRod) { $imgRod } else { $imgPiston }
+        $title = if ($script:figRod) { 'SKY 寸法指示図（ロッド用）' } else { 'SKY 寸法指示図（ピストン用）' }
+        Draw-Text $g $title (RGB '#263238') 6 2 $true
+        Draw-Text $g 'クリックで切替' (RGB '#607D8B') 300 2 $false
+        if ($img) {
+            $g.InterpolationMode = 'HighQualityBicubic'
+            $w = $fig.ClientSize.Width - 8
+            $h = [int]($img.Height * $w / $img.Width)
+            $g.DrawImage($img, 4, 24 + [int]((168 - $h) / 2), $w, $h)
+        }
+        Draw-Text $g '出典：阪上製作所 SKYパッキン 製品ページ' (RGB '#90A4AE') 6 194 $false
+        return
+    }
+
     $gx1 = 170; $gx2 = 280       # 溝の左右の壁（G）
     $yBore = 48                  # 相手側（穴）の面 = D
     $yShaft = 70                 # 軸の外周面
@@ -238,6 +254,15 @@ $fig.Add_Paint({
 foreach ($t in @($txtInner, $txtOuter, $txtWidth)) { $t.Add_TextChanged({ $fig.Invalidate() }) }
 $cmbBR.Add_SelectedIndexChanged({ $fig.Invalidate() })
 
+# 阪上パッキンの図（images/ に置いた SKY の寸法指示図）
+$imgPiston = $null; $imgRod = $null
+if (Test-Path "$PSScriptRoot\images\sky-piston.png") { $imgPiston = [System.Drawing.Image]::FromFile("$PSScriptRoot\images\sky-piston.png") }
+if (Test-Path "$PSScriptRoot\images\sky-rod.png")    { $imgRod    = [System.Drawing.Image]::FromFile("$PSScriptRoot\images\sky-rod.png") }
+$script:figRod = $false
+$fig.Add_Click({
+    if ($cmbKind.SelectedIndex -eq 1) { $script:figRod = -not $script:figRod; $fig.Invalidate() }
+})
+
 $list = New-Object System.Windows.Forms.ListView
 $list.Location = New-Object System.Drawing.Point(20, 305)
 $list.Size = New-Object System.Drawing.Size(705, 300)
@@ -271,6 +296,7 @@ $form.Controls.Add($list)
 $cmbKind.Add_SelectedIndexChanged({
     Set-Columns
     $cmbUse.Enabled = $cmbKind.SelectedIndex -eq 0
+    $fig.Cursor = if ($cmbKind.SelectedIndex -eq 1) { 'Hand' } else { 'Default' }
     $msg.Text = ''
     $fig.Invalidate()
 })
