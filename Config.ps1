@@ -12,7 +12,7 @@ $Criteria = @{
 $FillMax    = 85   # 溝充填率の上限 [%]
 $StretchMin = 0    # 内径の伸びの下限 [%]
 $StretchMax = 5    # 内径の伸びの上限 [%]
-$MaxResults = 5    # 表示する候補の最大件数
+$MaxResults = 2    # 表示する候補の最大件数
 
 # 溝寸法の公差 [mm]（線径 d2 ごと）
 # 出典：さくらシール Oリングサイズ表（P規格 https://www.sakura-seal.co.jp/category/1982811.html、

@@ -20,10 +20,10 @@ Describe 'Find-ORing' {
         @($r.Candidates | Where-Object { $_.Name -like 'G*' }).Count | Should Be 0
     }
 
-    It '候補は系列ごとに最大5件で、P → G の順に並ぶ' {
+    It '候補は系列ごとに最大2件で、P → G の順に並ぶ' {
         $r = Find-ORing -GrooveInner 100 -GrooveOuter 108 -GrooveWidth 7.5 -Use Static -Table $table
-        @($r.Candidates | Where-Object { $_.Series -eq 'P' }).Count -le 5 | Should Be $true
-        @($r.Candidates | Where-Object { $_.Series -eq 'G' }).Count -le 5 | Should Be $true
+        @($r.Candidates | Where-Object { $_.Series -eq 'P' }).Count -le 2 | Should Be $true
+        @($r.Candidates | Where-Object { $_.Series -eq 'G' }).Count -le 2 | Should Be $true
         $s = @($r.Candidates | ForEach-Object { $_.Series })
         ($s -join '') -match '^P*G*$' | Should Be $true
     }
