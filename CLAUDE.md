@@ -56,6 +56,7 @@ pakkinsagasi/
 ├─ Config.ps1       # 判定基準の定数
 ├─ index.html       # Web版の画面（スマホ用。GitHub Pages で公開）
 ├─ search.js        # Web版の計算（Search.ps1 + Config.ps1 を JavaScript にしたもの）
+├─ manifest.webmanifest, sw.js, icon-*.png, apple-touch-icon.png  # ホーム画面に追加する用（sw.js は通信優先、圏外時のみキャッシュ）
 ├─ data/
 │  └─ oring_jis_b2401.csv
 └─ tests/
