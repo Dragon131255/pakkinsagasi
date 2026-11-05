@@ -60,8 +60,8 @@
 - 公差：d・D・溝幅に公差を付けて表示する。公差の指定は `Config.ps1` の `$PackingTolerance`（出典：各製品ページの寸法指示図、2026-11-05 確認）
   - はめあい記号（H8・H9・h8・f8）は ISO 286（JIS B 0401）の表（`$FitIT8` など、1600mm まで）から数値にする
   - SKY・KY は両用なので、ピストンに使う場合とロッドに使う場合の公差を両方表示する
-- 図：阪上パッキンを選んだときは、溝の断面図の代わりに SKY の寸法指示図（`images/sky-piston.png`・`images/sky-rod.png`）を出す
-  - 出典：https://www.sakagami-ltd.co.jp/products/hydraulic-seals/sky の寸法指示図の余白を切り取ったもの
+- 図：阪上パッキンを選んだときは、溝の断面図の代わりに寸法指示図（`images/<製品>-piston.png`・`images/<製品>-rod.png`、今は SKY・KY）を出す。最初は検索結果の先頭の製品、検索結果の行（Web版はカード）を選ぶとその製品の図に切り替わる
+  - 出典：https://www.sakagami-ltd.co.jp/products/hydraulic-seals/<製品> の寸法指示図の余白を切り取ったもの
   - PowerShell 版は図をクリックでピストン用／ロッド用を切り替え、Web版は2枚を縦に並べる
 
 ## 構成

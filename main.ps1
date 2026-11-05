@@ -150,10 +150,11 @@ $fig.Add_Paint({
     $g.SmoothingMode = 'AntiAlias'
     $g.TextRenderingHint = 'ClearTypeGridFit'
 
-    # 阪上パッキンのときは阪上製作所の SKY の寸法指示図を出す（クリックでピストン用／ロッド用を切り替え）
+    # 阪上パッキンのときは阪上製作所の寸法指示図を出す（クリックでピストン用／ロッド用、検索結果の行を選ぶと製品を切り替え）
     if ($cmbKind.SelectedIndex -eq 1) {
-        $img = if ($script:figRod) { $imgRod } else { $imgPiston }
-        $title = if ($script:figRod) { 'SKY 寸法指示図（ロッド用）' } else { 'SKY 寸法指示図（ピストン用）' }
+        $p = $script:figProduct
+        $img = $figImages[$p][$(if ($script:figRod) { 'Rod' } else { 'Piston' })]
+        $title = "$p 寸法指示図（" + $(if ($script:figRod) { 'ロッド用' } else { 'ピストン用' }) + '）'
         Draw-Text $g $title (RGB '#263238') 6 2 $true
         Draw-Text $g 'クリックで切替' (RGB '#607D8B') 300 2 $false
         if ($img) {
@@ -162,7 +163,7 @@ $fig.Add_Paint({
             $h = [int]($img.Height * $w / $img.Width)
             $g.DrawImage($img, 4, 24 + [int]((168 - $h) / 2), $w, $h)
         }
-        Draw-Text $g '出典：阪上製作所 SKYパッキン 製品ページ' (RGB '#90A4AE') 6 194 $false
+        Draw-Text $g "出典：阪上製作所 $($p)パッキン 製品ページ" (RGB '#90A4AE') 6 194 $false
         return
     }
 
@@ -254,10 +255,16 @@ $fig.Add_Paint({
 foreach ($t in @($txtInner, $txtOuter, $txtWidth)) { $t.Add_TextChanged({ $fig.Invalidate() }) }
 $cmbBR.Add_SelectedIndexChanged({ $fig.Invalidate() })
 
-# 阪上パッキンの図（images/ に置いた SKY の寸法指示図）
-$imgPiston = $null; $imgRod = $null
-if (Test-Path "$PSScriptRoot\images\sky-piston.png") { $imgPiston = [System.Drawing.Image]::FromFile("$PSScriptRoot\images\sky-piston.png") }
-if (Test-Path "$PSScriptRoot\images\sky-rod.png")    { $imgRod    = [System.Drawing.Image]::FromFile("$PSScriptRoot\images\sky-rod.png") }
+# 阪上パッキンの図（images/<製品>-piston.png・<製品>-rod.png に置いた寸法指示図）
+$figImages = @{}
+foreach ($p in @('SKY', 'KY')) {
+    $figImages[$p] = @{}
+    foreach ($u in @('Piston', 'Rod')) {
+        $f = "$PSScriptRoot\images\$($p.ToLower())-$($u.ToLower()).png"
+        $figImages[$p][$u] = if (Test-Path $f) { [System.Drawing.Image]::FromFile($f) } else { $null }
+    }
+}
+$script:figProduct = 'SKY'
 $script:figRod = $false
 $fig.Add_Click({
     if ($cmbKind.SelectedIndex -eq 1) { $script:figRod = -not $script:figRod; $fig.Invalidate() }
@@ -291,6 +298,13 @@ function Set-Columns {
 }
 Set-Columns
 $form.Controls.Add($list)
+
+# 阪上パッキンの検索結果で行を選ぶと、図をその製品の寸法指示図にする（図がある製品だけ）
+$list.Add_SelectedIndexChanged({
+    if ($cmbKind.SelectedIndex -ne 1 -or $list.SelectedItems.Count -eq 0) { return }
+    $grp = $list.SelectedItems[0].Group
+    if ($grp -and $figImages.ContainsKey($grp.Name)) { $script:figProduct = $grp.Name; $fig.Invalidate() }
+})
 
 # 種類を切り替えたら一覧の列を入れ替える。阪上パッキンは運動用なので「用途」は使わない
 $cmbKind.Add_SelectedIndexChanged({
@@ -359,6 +373,10 @@ $btn.Add_Click({
                 $lines += '出典：阪上製作所の製品ページの寸法表。使用条件（圧力・速度・温度）は阪上製作所のカタログで確認してください。'
             }
             $msg.Text = $lines -join "`r`n"
+            # 図は検索結果の先頭の製品にする
+            if ($result.Candidates.Count -gt 0 -and $figImages.ContainsKey($result.Candidates[0].Product)) {
+                $script:figProduct = $result.Candidates[0].Product; $fig.Invalidate()
+            }
             return
         }
         $use = if ($cmbUse.SelectedItem -eq '運動用') { 'Dynamic' } else { 'Static' }
