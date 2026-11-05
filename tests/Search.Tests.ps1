@@ -135,6 +135,25 @@ Describe 'Find-Packing' {
         $r.Reasons.Count -gt 0 | Should Be $true
     }
 
+    It '公差：寸法指示図どおり、はめあい記号は ISO 286 の数値にする' {
+        $r = Find-Packing -GrooveInner 40 -GrooveOuter 50 -Table $ptable
+        $g = @($r.Candidates | Where-Object { $_.Code -eq 'GPY-50' })[0]
+        $g.TolInner | Should Be 'h8 0 / -0.039'
+        $g.TolOuter | Should Be 'H9 +0.062 / 0'
+        $g.TolWidth | Should Be '+0.25 / 0'
+        $n = @($r.Candidates | Where-Object { $_.Code -eq 'GNY-40' })[0]
+        $n.TolInner | Should Be 'f8 -0.025 / -0.064'
+        $n.TolOuter | Should Be 'H8 +0.039 / 0'
+        $s = @($r.Candidates | Where-Object { $_.Code -eq 'SKY-40' })[0]
+        $s.TolInner | Should Be 'ピストン +0.2 / 0／ロッド f8 -0.025 / -0.064'
+        $s.TolWidth | Should Be '±0.2'
+    }
+
+    It '公差：寸法区分の境目（30 は 18〜30 の区分）' {
+        Format-PackingTol 'H9' 30 | Should Be 'H9 +0.052 / 0'
+        Format-PackingTol 'H9' 30.1 | Should Be 'H9 +0.062 / 0'
+    }
+
     It '外径が内径以下ならエラー' {
         { Find-Packing -GrooveInner 40 -GrooveOuter 30 -Table $ptable } | Should Throw
     }

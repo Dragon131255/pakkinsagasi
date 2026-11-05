@@ -190,6 +190,41 @@ function Get-PackingTable {
     }
 }
 
+# 公差の指定（'H9' などのはめあい記号、または '+0.2/0'・'±0.2' などの数値）を表示用の文字列にする
+function Format-PackingTol {
+    param([string]$Spec, [double]$Size)
+    $um = { param($v) if ($v -eq 0) { '0' } else { ('{0}{1:0.000}' -f $(if ($v -gt 0) { '+' } else { '-' }), ([math]::Abs($v) / 1000)) } }
+    if ($Spec -match '^([HhfF])(8|9)$') {
+        $i = 0
+        while ($i -lt $FitSizeUpper.Count -and $Size -gt $FitSizeUpper[$i]) { $i++ }
+        if ($i -ge $FitSizeUpper.Count) { return $Spec }
+        $it = if ($Matches[2] -eq '8') { $FitIT8[$i] } else { $FitIT9[$i] }
+        switch -CaseSensitive ($Matches[1]) {
+            'H' { $hi = $it;         $lo = 0 }
+            'h' { $hi = 0;           $lo = -$it }
+            'f' { $hi = $FitEsF[$i]; $lo = $FitEsF[$i] - $it }
+        }
+        return "$Spec $(& $um $hi) / $(& $um $lo)"
+    }
+    if ($Spec -match '^([+\-]?[\d.]+)/([+\-]?[\d.]+)$') { return "$($Matches[1]) / $($Matches[2])" }
+    $Spec
+}
+
+# 製品・使用箇所ごとの d・D・溝幅の公差（両用はピストン用・ロッド用を並べる）
+function Get-PackingTol {
+    param($Row)
+    $t = $PackingTolerance[$Row.Product]
+    if ($null -eq $t) { return @{ Inner = '—'; Outer = '—'; Width = '—' } }
+    $inner = @(); $outer = @()
+    foreach ($u in @('Piston', 'Rod')) {
+        if (-not $t.ContainsKey($u)) { continue }
+        $label = if ($Row.Use -eq 'Both') { @{ Piston = 'ピストン '; Rod = 'ロッド ' }[$u] } else { '' }
+        $inner += $label + (Format-PackingTol $t[$u].Inner $Row.D1)
+        $outer += $label + (Format-PackingTol $t[$u].Outer $Row.D2)
+    }
+    @{ Inner = $inner -join '／'; Outer = $outer -join '／'; Width = Format-PackingTol $t.Width 0 }
+}
+
 function Find-Packing {
     param(
         [Nullable[double]]$GrooveInner,
@@ -230,10 +265,12 @@ function Find-Packing {
         if ($hasInner) { $e = [math]::Abs($GrooveInner - $r.D1); if ($e -gt $PackingDiaTol + 1e-9) { continue }; $dev += $e }
         if ($hasOuter) { $e = [math]::Abs($GrooveOuter - $r.D2); if ($e -gt $PackingDiaTol + 1e-9) { continue }; $dev += $e }
         if ($hasWidth) { $e = [math]::Abs($GrooveWidth - $w);   if ($e -gt $PackingWidthTol + 1e-9) { continue }; $dev += $e }
+        $tol = Get-PackingTol $r
         [pscustomobject]@{
             Product = $r.Product; Use = $r.Use; Code = $r.Code
             D1 = $r.D1; D2 = $r.D2; H = $r.H; Width = $w
             Backup = if ($withBR) { $r.Backup } else { '' }
+            TolInner = $tol.Inner; TolOuter = $tol.Outer; TolWidth = $tol.Width
             Deviation = $dev; Order = $i
         }
     }

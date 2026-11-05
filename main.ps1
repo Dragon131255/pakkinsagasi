@@ -247,14 +247,14 @@ $list.GridLines = $true
 function Set-Columns {
     $list.Items.Clear(); $list.Groups.Clear(); $list.Columns.Clear()
     if ($cmbKind.SelectedIndex -eq 1) {
-        [void]$list.Columns.Add('指示コード', 115)
-        [void]$list.Columns.Add('使用箇所', 90)
-        [void]$list.Columns.Add('d', 65)
-        [void]$list.Columns.Add('D', 65)
-        [void]$list.Columns.Add('H', 55)
-        [void]$list.Columns.Add('溝幅', 65)
-        [void]$list.Columns.Add('バックアップリング', 160)
-        [void]$list.Columns.Add('寸法の差', 75)
+        [void]$list.Columns.Add('指示コード', 95)
+        [void]$list.Columns.Add('使用箇所', 70)
+        [void]$list.Columns.Add('d（公差）', 175)
+        [void]$list.Columns.Add('D（公差）', 175)
+        [void]$list.Columns.Add('H', 40)
+        [void]$list.Columns.Add('溝幅（公差）', 110)
+        [void]$list.Columns.Add('バックアップリング', 110)
+        [void]$list.Columns.Add('寸法の差', 60)
     } else {
         [void]$list.Columns.Add('呼び番号', 80)
         [void]$list.Columns.Add('線径 d2', 75)
@@ -318,7 +318,7 @@ $btn.Add_Click({
                 $i = [int]$rank[$r.Product]; $rank[$r.Product] = $i + 1
                 $item = New-Object System.Windows.Forms.ListViewItem($r.Code)
                 $item.Group = $groups[$r.Product]
-                foreach ($v in @($useName[$r.Use], $r.D1, $r.D2, $r.H, $r.Width, $(if ($r.Backup) { $r.Backup } else { '—' }), ('{0:0.0#}' -f $r.Deviation))) {
+                foreach ($v in @($useName[$r.Use], "$($r.D1)（$($r.TolInner)）", "$($r.D2)（$($r.TolOuter)）", $r.H, "$($r.Width)（$($r.TolWidth)）", $(if ($r.Backup) { $r.Backup } else { '—' }), ('{0:0.0#}' -f $r.Deviation))) {
                     [void]$item.SubItems.Add([string]$v)
                 }
                 $item.BackColor = if ($i -eq 0) { RGB '#C8E6C9' } else { RGB '#E3F2FD' }
