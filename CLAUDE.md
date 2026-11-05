@@ -47,6 +47,16 @@
 - 並び順：内径の伸びが小さい順（内径未入力時は上の「入力」の並び順に従う）
 - 候補がないときは、その旨と、どの条件で外れたかを表示する
 
+## 阪上パッキン（油圧シリンダ用）
+- 画面の「種類」で Oリング／阪上パッキンを切り替える。入力は Oリングと同じ d・D・溝幅・バックアップリング（「用途」は使わない）
+- 対象は阪上製作所の油圧用パッキンのうち主用途に「油圧シリンダ」とある NBR の8製品：GPY, GNY, RGY, RNY, ⓉSGY, ⓉSNY, SKY, KY(KKY)
+  - PTFE の5製品（STシール ST/STS、SMJ、STK STR、STC）は対象外（ユーザー判断）
+- サイズ表は `data/sakagami_hydraulic.csv`（列：Product, Use=Piston/Rod/Both, Code=標準の指示コード, Inner=表の d, Outer=表の D, H, GA=溝幅 BRなし, GB=溝幅 BRあり, Backup=併用バックアップの指示コード）
+  - 出典：阪上製作所の製品ページ（https://www.sakagami-ltd.co.jp/products/hydraulic-seals/<製品>）の寸法表をそのまま転記（2026-11-05）
+  - 列名を d / D にしないこと（Import-Csv は大文字小文字を区別せず重複扱いになる）
+- 判定：d・D・溝幅それぞれ、表の値との差が許容差以内（`Config.ps1` の `$PackingDiaTol`・`$PackingWidthTol`、初期値 0.5mm）。BR なし→GA、片側・両側→GB で比べる（表に両側の溝幅はない）
+- 出力：製品ごとに最大 `$MaxResults` 件、寸法の差が小さい順
+
 ## 構成
 ```
 pakkinsagasi/
@@ -58,7 +68,8 @@ pakkinsagasi/
 ├─ search.js        # Web版の計算（Search.ps1 + Config.ps1 を JavaScript にしたもの）
 ├─ manifest.webmanifest, sw.js, icon-*.png, apple-touch-icon.png  # ホーム画面に追加する用（sw.js は通信優先、圏外時のみキャッシュ）
 ├─ data/
-│  └─ oring_jis_b2401.csv
+│  ├─ oring_jis_b2401.csv
+│  └─ sakagami_hydraulic.csv   # 阪上パッキン（油圧）のサイズ表
 └─ tests/
    └─ Search.Tests.ps1
 ```

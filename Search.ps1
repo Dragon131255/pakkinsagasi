@@ -168,3 +168,90 @@ function Find-ORing {
         Notes       = $notes
     }
 }
+
+# ---- 阪上パッキン（油圧シリンダ用） ----
+# サイズ表：data/sakagami_hydraulic.csv（出典：阪上製作所の製品ページの寸法表）
+# 列 Inner＝表の d、Outer＝表の D。溝内径・溝外径として扱う（ピストン用：D＝シリンダ内径、d＝溝底径／ロッド用：d＝ロッド径、D＝溝底径）
+
+function Get-PackingTable {
+    param([Parameter(Mandatory)][string]$Path)
+    Import-Csv -Path $Path -Encoding UTF8 | ForEach-Object {
+        [pscustomobject]@{
+            Product = $_.Product
+            Use     = $_.Use
+            Code    = $_.Code
+            D1      = [double]$_.Inner
+            D2      = [double]$_.Outer
+            H       = [double]$_.H
+            GA      = [double]$_.GA
+            GB      = [double]$_.GB
+            Backup  = $_.Backup
+        }
+    }
+}
+
+function Find-Packing {
+    param(
+        [Nullable[double]]$GrooveInner,
+        [Nullable[double]]$GrooveOuter,
+        [Nullable[double]]$GrooveWidth,
+        [Parameter(Mandatory)][object[]]$Table,
+        # サイズ表の溝幅は「バックアップリングなし（GA）」と「あり（GB）」の2種類。片側・両側はどちらも GB で判定する
+        [ValidateSet('None', 'One', 'Both')][string]$BackupRing = 'None'
+    )
+    $hasInner = $null -ne $GrooveInner
+    $hasOuter = $null -ne $GrooveOuter
+    $hasWidth = $null -ne $GrooveWidth
+
+    if (-not ($hasInner -or $hasOuter -or $hasWidth)) {
+        throw '溝の内径・外径・溝幅のどれか1つ以上を入力してください。'
+    }
+    foreach ($v in @($GrooveInner, $GrooveOuter, $GrooveWidth)) {
+        if ($null -ne $v -and $v -le 0) { throw '寸法には0より大きい値を入力してください。' }
+    }
+    if ($hasInner -and $hasOuter -and $GrooveOuter -le $GrooveInner) {
+        throw '溝の外径は内径より大きい値を入力してください。'
+    }
+    $withBR = $BackupRing -ne 'None'
+
+    $notes = @()
+    if ($hasInner) { $notes += "d の差 ±$PackingDiaTol mm 以内" }
+    if ($hasOuter) { $notes += "D の差 ±$PackingDiaTol mm 以内" }
+    if ($hasWidth) {
+        $notes += "溝幅の差 ±$PackingWidthTol mm 以内（" + $(if ($withBR) { 'バックアップリングありの溝幅 GB' } else { 'バックアップリングなしの溝幅 GA' }) + '）'
+        if ($BackupRing -eq 'Both') { $notes += '（サイズ表に両側の溝幅はないため、バックアップリングありの溝幅で判定）' }
+    }
+
+    $i = 0
+    $matched = foreach ($r in $Table) {
+        $i++
+        $w = if ($withBR) { $r.GB } else { $r.GA }
+        $dev = 0.0
+        if ($hasInner) { $e = [math]::Abs($GrooveInner - $r.D1); if ($e -gt $PackingDiaTol + 1e-9) { continue }; $dev += $e }
+        if ($hasOuter) { $e = [math]::Abs($GrooveOuter - $r.D2); if ($e -gt $PackingDiaTol + 1e-9) { continue }; $dev += $e }
+        if ($hasWidth) { $e = [math]::Abs($GrooveWidth - $w);   if ($e -gt $PackingWidthTol + 1e-9) { continue }; $dev += $e }
+        [pscustomobject]@{
+            Product = $r.Product; Use = $r.Use; Code = $r.Code
+            D1 = $r.D1; D2 = $r.D2; H = $r.H; Width = $w
+            Backup = if ($withBR) { $r.Backup } else { '' }
+            Deviation = $dev; Order = $i
+        }
+    }
+    $matched = @($matched)
+
+    # 製品ごとに最大 $MaxResults 件（差が小さい順）。製品の並びは、いちばん差が小さい候補の順
+    $groups = @($matched | Group-Object Product | ForEach-Object {
+        $top = @($_.Group | Sort-Object Deviation, Order | Select-Object -First $MaxResults)
+        [pscustomobject]@{ Best = $top[0].Deviation; Order = $top[0].Order; Items = $top }
+    } | Sort-Object Best, Order)
+    $candidates = @(foreach ($g in $groups) { $g.Items })
+
+    $reasons = @()
+    if ($candidates.Count -eq 0) { $reasons += '入力した寸法に合う阪上パッキンはありません（許容差の範囲外）。' }
+
+    [pscustomobject]@{
+        Candidates = $candidates
+        Reasons    = $reasons
+        Notes      = $notes
+    }
+}

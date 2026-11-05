@@ -7,6 +7,7 @@ Add-Type -AssemblyName System.Drawing
 . "$PSScriptRoot\Search.ps1"
 
 $table = @(Get-ORingTable -Path "$PSScriptRoot\data\oring_jis_b2401.csv")
+$ptable = @(Get-PackingTable -Path "$PSScriptRoot\data\sakagami_hydraulic.csv")
 
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
@@ -21,8 +22,8 @@ $colMain   = RGB '#1565C0'   # 見出し・ボタン
 $colBg     = RGB '#F3F6FB'
 
 $form = New-Object System.Windows.Forms.Form
-$form.Text = 'パッキン探し（JIS B 2401 Oリング）'
-$form.ClientSize = New-Object System.Drawing.Size(745, 740)
+$form.Text = 'パッキン探し（JIS B 2401 Oリング・阪上パッキン）'
+$form.ClientSize = New-Object System.Drawing.Size(745, 760)
 $form.StartPosition = 'CenterScreen'
 $form.Font = New-Object System.Drawing.Font('Yu Gothic UI', 10)
 $form.FormBorderStyle = 'FixedSingle'
@@ -33,7 +34,7 @@ if (Test-Path $iconPath) { $form.Icon = New-Object System.Drawing.Icon $iconPath
 
 # 見出しの帯
 $header = New-Object System.Windows.Forms.Label
-$header.Text = '  ◎ パッキン探し　─　JIS B 2401 Oリング選定'
+$header.Text = '  ◎ パッキン探し　─　Oリング・油圧パッキン選定'
 $header.Dock = 'Top'
 $header.Height = 44
 $header.TextAlign = 'MiddleLeft'
@@ -62,16 +63,25 @@ function New-Input($x, $y) {
     $t
 }
 
-New-Label '● d 溝の内径 [mm]' 20 68 $colInner
-$txtInner = New-Input 190 65
-New-Label '● D 溝の外径 [mm]' 20 103 $colOuter
-$txtOuter = New-Input 190 100
-New-Label '● G 溝幅 [mm]' 20 138 $colWidth
-$txtWidth = New-Input 190 135
-New-Label '用途' 20 173
+New-Label '種類' 20 68
+$cmbKind = New-Object System.Windows.Forms.ComboBox
+$cmbKind.Location = New-Object System.Drawing.Point(190, 65)
+$cmbKind.Width = 130
+$cmbKind.DropDownStyle = 'DropDownList'
+[void]$cmbKind.Items.AddRange(@('Oリング', '阪上パッキン'))
+$cmbKind.SelectedIndex = 0
+$form.Controls.Add($cmbKind)
+
+New-Label '● d 溝の内径 [mm]' 20 100 $colInner
+$txtInner = New-Input 190 97
+New-Label '● D 溝の外径 [mm]' 20 132 $colOuter
+$txtOuter = New-Input 190 129
+New-Label '● G 溝幅 [mm]' 20 164 $colWidth
+$txtWidth = New-Input 190 161
+New-Label '用途' 20 196
 
 $cmbUse = New-Object System.Windows.Forms.ComboBox
-$cmbUse.Location = New-Object System.Drawing.Point(190, 170)
+$cmbUse.Location = New-Object System.Drawing.Point(190, 193)
 $cmbUse.Width = 100
 $cmbUse.DropDownStyle = 'DropDownList'
 [void]$cmbUse.Items.AddRange(@('運動用', '固定用'))
@@ -79,20 +89,20 @@ $cmbUse.SelectedIndex = 1
 $form.Controls.Add($cmbUse)
 
 $colBR = RGB '#37474F'   # バックアップリング
-New-Label '● バックアップリング' 20 208 $colBR
+New-Label '● バックアップリング' 20 228 $colBR
 $cmbBR = New-Object System.Windows.Forms.ComboBox
-$cmbBR.Location = New-Object System.Drawing.Point(190, 205)
+$cmbBR.Location = New-Object System.Drawing.Point(190, 225)
 $cmbBR.Width = 100
 $cmbBR.DropDownStyle = 'DropDownList'
 [void]$cmbBR.Items.AddRange(@('なし', '片側', '両側'))
 $cmbBR.SelectedIndex = 0
 $form.Controls.Add($cmbBR)
 
-New-Label '空欄の寸法は判定に使いません' 128 247
+New-Label '空欄の寸法は判定に使いません' 128 269
 
 $btn = New-Object System.Windows.Forms.Button
 $btn.Text = '検索'
-$btn.Location = New-Object System.Drawing.Point(20, 240)
+$btn.Location = New-Object System.Drawing.Point(20, 262)
 $btn.Size = New-Object System.Drawing.Size(100, 32)
 $btn.FlatStyle = 'Flat'
 $btn.FlatAppearance.BorderSize = 0
@@ -188,7 +198,7 @@ $fig.Add_Paint({
     $ringBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush $ringRect, (RGB '#FF8A80'), (RGB '#B71C1C'), 45.0
     $g.FillEllipse($ringBrush, $ringRect)
     $g.DrawEllipse((New-Object System.Drawing.Pen (RGB '#7F0000'), 1.2), $ringRect)
-    Draw-Text $g 'Oリング' $colRing 108 ($yBore + 2) $true
+    Draw-Text $g $(if ($cmbKind.SelectedIndex -eq 1) { 'パッキン' } else { 'Oリング' }) $colRing 108 ($yBore + 2) $true
 
     # 中心線
     $cl = New-Object System.Drawing.Pen (RGB '#607D8B'), 1
@@ -229,21 +239,44 @@ foreach ($t in @($txtInner, $txtOuter, $txtWidth)) { $t.Add_TextChanged({ $fig.I
 $cmbBR.Add_SelectedIndexChanged({ $fig.Invalidate() })
 
 $list = New-Object System.Windows.Forms.ListView
-$list.Location = New-Object System.Drawing.Point(20, 285)
+$list.Location = New-Object System.Drawing.Point(20, 305)
 $list.Size = New-Object System.Drawing.Size(705, 300)
 $list.View = 'Details'
 $list.FullRowSelect = $true
 $list.GridLines = $true
-[void]$list.Columns.Add('呼び番号', 80)
-[void]$list.Columns.Add('線径 d2', 75)
-[void]$list.Columns.Add('内径 d1', 75)
-[void]$list.Columns.Add('溝内径 d（公差）', 155)
-[void]$list.Columns.Add('溝外径 D（公差）', 155)
-[void]$list.Columns.Add('溝幅 G（公差）', 140)
+function Set-Columns {
+    $list.Items.Clear(); $list.Groups.Clear(); $list.Columns.Clear()
+    if ($cmbKind.SelectedIndex -eq 1) {
+        [void]$list.Columns.Add('指示コード', 115)
+        [void]$list.Columns.Add('使用箇所', 90)
+        [void]$list.Columns.Add('d', 65)
+        [void]$list.Columns.Add('D', 65)
+        [void]$list.Columns.Add('H', 55)
+        [void]$list.Columns.Add('溝幅', 65)
+        [void]$list.Columns.Add('バックアップリング', 160)
+        [void]$list.Columns.Add('寸法の差', 75)
+    } else {
+        [void]$list.Columns.Add('呼び番号', 80)
+        [void]$list.Columns.Add('線径 d2', 75)
+        [void]$list.Columns.Add('内径 d1', 75)
+        [void]$list.Columns.Add('溝内径 d（公差）', 155)
+        [void]$list.Columns.Add('溝外径 D（公差）', 155)
+        [void]$list.Columns.Add('溝幅 G（公差）', 140)
+    }
+}
+Set-Columns
 $form.Controls.Add($list)
 
+# 種類を切り替えたら一覧の列を入れ替える。阪上パッキンは運動用なので「用途」は使わない
+$cmbKind.Add_SelectedIndexChanged({
+    Set-Columns
+    $cmbUse.Enabled = $cmbKind.SelectedIndex -eq 0
+    $msg.Text = ''
+    $fig.Invalidate()
+})
+
 $msg = New-Object System.Windows.Forms.TextBox
-$msg.Location = New-Object System.Drawing.Point(20, 595)
+$msg.Location = New-Object System.Drawing.Point(20, 615)
 $msg.Size = New-Object System.Drawing.Size(705, 130)
 $msg.BackColor = RGB '#FFF8E1'
 $msg.Multiline = $true
@@ -268,6 +301,40 @@ $btn.Add_Click({
         $inner = Read-Number $txtInner '溝の内径'
         $outer = Read-Number $txtOuter '溝の外径'
         $width = Read-Number $txtWidth '溝幅'
+
+        if ($cmbKind.SelectedIndex -eq 1) {
+            # 阪上パッキン：製品ごとにグループ表示
+            $br = @('None', 'One', 'Both')[$cmbBR.SelectedIndex]
+            $result = Find-Packing -GrooveInner $inner -GrooveOuter $outer -GrooveWidth $width -Table $ptable -BackupRing $br
+            $useName = @{ Piston = 'ピストン用'; Rod = 'ロッド用'; Both = '両用' }
+            $list.Groups.Clear()
+            $groups = @{}
+            $rank = @{}
+            foreach ($r in $result.Candidates) {
+                if (-not $groups.ContainsKey($r.Product)) {
+                    $n = @($result.Candidates | Where-Object { $_.Product -eq $r.Product }).Count
+                    $groups[$r.Product] = $list.Groups.Add($r.Product, "$($r.Product)パッキン（$n 件）")
+                }
+                $i = [int]$rank[$r.Product]; $rank[$r.Product] = $i + 1
+                $item = New-Object System.Windows.Forms.ListViewItem($r.Code)
+                $item.Group = $groups[$r.Product]
+                foreach ($v in @($useName[$r.Use], $r.D1, $r.D2, $r.H, $r.Width, $(if ($r.Backup) { $r.Backup } else { '—' }), ('{0:0.0#}' -f $r.Deviation))) {
+                    [void]$item.SubItems.Add([string]$v)
+                }
+                $item.BackColor = if ($i -eq 0) { RGB '#C8E6C9' } else { RGB '#E3F2FD' }
+                if ($i -eq 0) { $item.Font = New-Object System.Drawing.Font('Yu Gothic UI', 10, [System.Drawing.FontStyle]::Bold) }
+                [void]$list.Items.Add($item)
+            }
+            $lines = @('判定条件：' + ($result.Notes -join ' / '))
+            if ($result.Candidates.Count -eq 0) {
+                $lines += $result.Reasons
+            } else {
+                $lines += "$($result.Candidates.Count) 件見つかりました（製品ごとに最大 $MaxResults 件、寸法の差が小さい順）。"
+                $lines += '出典：阪上製作所の製品ページの寸法表。使用条件（圧力・速度・温度）は阪上製作所のカタログで確認してください。'
+            }
+            $msg.Text = $lines -join "`r`n"
+            return
+        }
         $use = if ($cmbUse.SelectedItem -eq '運動用') { 'Dynamic' } else { 'Static' }
 
         $br = @('None', 'One', 'Both')[$cmbBR.SelectedIndex]

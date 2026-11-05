@@ -93,3 +93,49 @@ Describe 'Find-ORing' {
         { Find-ORing -GrooveInner 0 -GrooveOuter 25 -GrooveWidth 4 -Use Static -Table $table } | Should Throw
     }
 }
+
+Describe 'Find-Packing' {
+    $ptable = @(Get-PackingTable -Path "$root\data\sakagami_hydraulic.csv")
+
+    It 'サイズ表を読める（8製品・484サイズ）' {
+        $ptable.Count | Should Be 484
+        @($ptable | Select-Object -ExpandProperty Product -Unique).Count | Should Be 8
+    }
+
+    It 'd30・D40・溝幅7：寸法がぴったりのサイズが製品ごとに出る' {
+        $r = Find-Packing -GrooveInner 30 -GrooveOuter 40 -GrooveWidth 7 -Table $ptable
+        $codes = @($r.Candidates | ForEach-Object { $_.Code })
+        $codes -contains 'GPY-40'  | Should Be $true
+        $codes -contains 'GNY-30'  | Should Be $true
+        $codes -contains 'SKY-30'  | Should Be $true
+        @($r.Candidates | Where-Object { $_.Deviation -ne 0 }).Count | Should Be 0
+    }
+
+    It '製品ごとに最大2件' {
+        $r = Find-Packing -GrooveWidth 7 -Table $ptable
+        $r.Candidates | Group-Object Product | ForEach-Object { $_.Count -le 2 | Should Be $true }
+    }
+
+    It 'バックアップリングありは GB の溝幅で判定し、バックアップのコードを返す' {
+        $r = Find-Packing -GrooveInner 40 -GrooveOuter 50 -GrooveWidth 9 -BackupRing One -Table $ptable
+        $g = @($r.Candidates | Where-Object { $_.Product -eq 'GPY' })
+        $g[0].Code   | Should Be 'GPY-50'
+        $g[0].Width  | Should Be 9
+        $g[0].Backup | Should Be 'TC-GPY-50'
+    }
+
+    It '許容差を超えると出ない' {
+        $r = Find-Packing -GrooveInner 30.6 -GrooveOuter 40 -Table $ptable
+        @($r.Candidates | Where-Object { $_.D1 -eq 30 }).Count | Should Be 0
+    }
+
+    It '合わないときは理由を返す' {
+        $r = Find-Packing -GrooveInner 3 -GrooveOuter 3.5 -Table $ptable
+        $r.Candidates.Count | Should Be 0
+        $r.Reasons.Count -gt 0 | Should Be $true
+    }
+
+    It '外径が内径以下ならエラー' {
+        { Find-Packing -GrooveInner 40 -GrooveOuter 30 -Table $ptable } | Should Throw
+    }
+}
