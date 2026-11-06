@@ -294,8 +294,7 @@ function Set-Columns {
         [void]$list.Columns.Add('使用箇所', 70)
         [void]$list.Columns.Add('d', 60)
         [void]$list.Columns.Add('D1', 60)
-        [void]$list.Columns.Add('H', 70)
-        [void]$list.Columns.Add('溝幅', 60)
+        [void]$list.Columns.Add('GA', 60)
         [void]$list.Columns.Add('バックアップリング', 110)
         [void]$list.Columns.Add('メーカー', 80)
     } else {
@@ -357,6 +356,8 @@ $btn.Add_Click({
             # 阪上パッキン：製品ごとにグループ表示
             $br = @('None', 'One', 'Both')[$cmbBR.SelectedIndex]
             $result = Find-Packing -GrooveInner $inner -GrooveOuter $outer -GrooveWidth $width -Table $ptable -BackupRing $br
+            # 溝幅の列名：バックアップリングなし＝GA、あり（片側・両側）＝GB
+            $list.Columns[4].Text = if ($br -eq 'None') { 'GA' } else { 'GB' }
             $useName = @{ Piston = 'ピストン用'; Rod = 'ロッド用'; Both = '両用' }
             $list.Groups.Clear()
             $groups = @{}
@@ -369,7 +370,7 @@ $btn.Add_Click({
                 $i = [int]$rank[$r.Product]; $rank[$r.Product] = $i + 1
                 $item = New-Object System.Windows.Forms.ListViewItem($r.Code)
                 $item.Group = $groups[$r.Product]
-                foreach ($v in @($useName[$r.Use], $r.D1, $(if ($r.DiaD1) { $r.DiaD1 } else { '—' }), $r.H, $r.Width, $(if ($r.Backup) { $r.Backup } else { '—' }), (Get-Maker $r.Product))) {
+                foreach ($v in @($useName[$r.Use], $r.D1, $(if ($r.DiaD1) { $r.DiaD1 } else { '—' }), $r.Width, $(if ($r.Backup) { $r.Backup } else { '—' }), (Get-Maker $r.Product))) {
                     [void]$item.SubItems.Add([string]$v)
                 }
                 $item.BackColor = if ($i -eq 0) { RGB '#C8E6C9' } else { RGB '#E3F2FD' }
