@@ -1,5 +1,5 @@
 // ホーム画面から開いたとき用。通信できるときは常に最新を取りに行き、圏外のときだけ保存した分を使う
-var CACHE = 'pakkinsagasi-v15';
+var CACHE = 'pakkinsagasi-v16';
 var FILES = ['./', 'index.html', 'search.js', 'data/oring_jis_b2401.csv', 'data/sakagami_hydraulic.csv', 'data/dust_seal.csv', 'images/sky-piston.png', 'images/sky-rod.png', 'images/ky-piston.png', 'images/ky-rod.png', 'images/uhp-piston.png', 'images/mlp-piston.png', 'images/mlr-rod.png', 'images/uph-piston.png', 'images/uph-rod.png', 'images/sdr-rod.png', 'images/lbh-rod.png', 'images/dhs-rod.png', 'images/dki-rod.png', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', function (e) {

@@ -102,7 +102,14 @@ $cmbBR.DropDownStyle = 'DropDownList'
 $cmbBR.SelectedIndex = 0
 $form.Controls.Add($cmbBR)
 
-New-Label '空欄の寸法は判定に使いません' 128 269
+# 呼び番号で探す（入れたときは寸法を使わない）
+New-Label '呼び番号' 132 269
+$txtName = New-Object System.Windows.Forms.TextBox
+$txtName.Location = New-Object System.Drawing.Point(190, 266)
+$txtName.Width = 130
+$form.Controls.Add($txtName)
+$tip = New-Object System.Windows.Forms.ToolTip
+$tip.SetToolTip($txtName, '一部だけでも探せます（例 P20、SKY40）。入れたときは寸法を使いません')
 
 $btn = New-Object System.Windows.Forms.Button
 $btn.Text = '検索'
@@ -471,17 +478,28 @@ function Read-Number($textBox, $label) {
     $v
 }
 
+# 件数の行。呼び番号で探したときは全件数と表示した件数を出す
+function Get-CountLine($result, $how) {
+    if (-not $result.ByName) { return "$($result.Candidates.Count) 件見つかりました$how。" }
+    $t = "$($result.Total) 件見つかりました（一致の近い順）。"
+    if ($result.Total -gt $result.Candidates.Count) { $t += "先頭 $($result.Candidates.Count) 件を表示しています。もう少し詳しく入れると絞り込めます。" }
+    $t
+}
+
 $btn.Add_Click({
     $list.Items.Clear()
     $msg.Text = ''
     try {
-        $inner = Read-Number $txtInner $(if ($cmbKind.SelectedIndex -eq 2) { 'ロッド径' } else { '溝の内径' })
-        $outer = if ($cmbKind.SelectedIndex -eq 2) { $null } else { Read-Number $txtOuter '溝の外径' }   # ダストシールはロッド径だけ
-        $width = if ($cmbKind.SelectedIndex -eq 2) { $null } else { Read-Number $txtWidth '溝幅' }
+        $name = $txtName.Text.Trim()   # 呼び番号を入れたときは寸法を読まない
+        if ($name) { $inner = $null; $outer = $null; $width = $null } else {
+            $inner = Read-Number $txtInner $(if ($cmbKind.SelectedIndex -eq 2) { 'ロッド径' } else { '溝の内径' })
+            $outer = if ($cmbKind.SelectedIndex -eq 2) { $null } else { Read-Number $txtOuter '溝の外径' }   # ダストシールはロッド径だけ
+            $width = if ($cmbKind.SelectedIndex -eq 2) { $null } else { Read-Number $txtWidth '溝幅' }
+        }
 
         if ($cmbKind.SelectedIndex -eq 2) {
             # ダストシール：製品ごとにグループ表示（溝幅は GA で判定）
-            $result = Find-Packing -GrooveInner $inner -GrooveOuter $outer -GrooveWidth $width -Table $dtable -Products $DustProducts -Label 'ダストシール'
+            $result = Find-Packing -GrooveInner $inner -GrooveOuter $outer -GrooveWidth $width -Table $dtable -Products $DustProducts -Label 'ダストシール' -Name $name
             $list.Groups.Clear()
             $groups = @{}; $rank = @{}
             foreach ($r in $result.Candidates) {
@@ -507,7 +525,7 @@ $btn.Add_Click({
             $lines = @('判定条件：' + ($result.Notes -join ' / '))
             if ($result.Candidates.Count -eq 0) { $lines += $result.Reasons }
             else {
-                $lines += "$($result.Candidates.Count) 件見つかりました（製品ごとに最大 $MaxResults 件、寸法の差が小さい順）。"
+                $lines += Get-CountLine $result "（製品ごとに最大 $MaxResults 件、寸法の差が小さい順）"
                 $lines += $DustSourceNote
             }
             $msg.Text = $lines -join "`r`n"
@@ -519,7 +537,7 @@ $btn.Add_Click({
         if ($cmbKind.SelectedIndex -eq 1) {
             # 阪上パッキン：製品ごとにグループ表示
             $br = @('None', 'One', 'Both')[$cmbBR.SelectedIndex]
-            $result = Find-Packing -GrooveInner $inner -GrooveOuter $outer -GrooveWidth $width -Table $ptable -BackupRing $br
+            $result = Find-Packing -GrooveInner $inner -GrooveOuter $outer -GrooveWidth $width -Table $ptable -BackupRing $br -Name $name
             # 溝幅の列名：バックアップリングなし＝GA、あり（片側・両側）＝GB
             $list.Columns[4].Text = if ($br -eq 'None') { 'GA（公差）' } else { 'GB（公差）' }
             $wk = if ($br -eq 'None') { 'GA' } else { 'GB' }
@@ -555,7 +573,7 @@ $btn.Add_Click({
             if ($result.Candidates.Count -eq 0) {
                 $lines += $result.Reasons
             } else {
-                $lines += "$($result.Candidates.Count) 件見つかりました（製品ごとに最大 $MaxResults 件、寸法の差が小さい順）。"
+                $lines += Get-CountLine $result "（製品ごとに最大 $MaxResults 件、寸法の差が小さい順）"
                 $lines += '出典：GPY〜KY は阪上製作所の製品ページ、UHP・MLP・MLR はバルカーの油圧用パッキン カタログ、UPH は NOK の UPH 型 寸法表。使用条件（圧力・速度・温度）は各社のカタログで確認してください。'
             }
             $msg.Text = $lines -join "`r`n"
@@ -570,7 +588,7 @@ $btn.Add_Click({
         $use = if ($cmbUse.SelectedItem -eq '運動用') { 'Dynamic' } else { 'Static' }
 
         $br = @('None', 'One', 'Both')[$cmbBR.SelectedIndex]
-        $result = Find-ORing -GrooveInner $inner -GrooveOuter $outer -GrooveWidth $width -Use $use -Table $table -BackupRing $br
+        $result = Find-ORing -GrooveInner $inner -GrooveOuter $outer -GrooveWidth $width -Use $use -Table $table -BackupRing $br -Name $name
 
         # P系列・G系列をグループに分けて表示
         $list.Groups.Clear()
@@ -616,7 +634,7 @@ $btn.Add_Click({
             $order = if ($null -ne $inner) { '内径の伸びが小さい順' }
                      elseif ($null -ne $outer) { 'つぶし率が推奨範囲の中央に近い順' }
                      else { '溝充填率が上限に近い順' }
-            $lines += "$($result.Candidates.Count) 件見つかりました（系列ごとに最大 $MaxResults 件、$order）。"
+            $lines += Get-CountLine $result "（系列ごとに最大 $MaxResults 件、$order）"
         }
         $msg.Text = $lines -join "`r`n"
     } catch {

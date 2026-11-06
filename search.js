@@ -8,7 +8,20 @@
     Dynamic: { SqueezeMin: 8, SqueezeMax: 20, Series: ['P'] },
     Static: { SqueezeMin: 15, SqueezeMax: 30, Series: ['P', 'G'] }
   };
-  var FillMax = 85, StretchMin = 0, StretchMax = 5, MaxResults = 2;
+  var FillMax = 85, StretchMin = 0, StretchMax = 5, MaxResults = 2, NameMaxResults = 30;
+
+  // 呼び番号の比較用（Search.ps1 の ConvertTo-NameKey と同じ）：全角→半角、大文字にし、ハイフン・空白・* などを除く
+  function nameKey(s) { return String(s == null ? '' : s).normalize('NFKC').toUpperCase().replace(/[\s\-_*・－ー]/g, ''); }
+  // 呼び番号に name を含む行を、完全一致 → 前方一致 → 部分一致、表の順で返す（Select-ByName と同じ）
+  function selectByName(table, prop, name) {
+    var key = nameKey(name);
+    return table.map(function (r, i) {
+      var k = nameKey(r[prop]);
+      return { r: r, i: i, rank: k.indexOf(key) < 0 ? -1 : k === key ? 0 : k.indexOf(key) === 0 ? 1 : 2 };
+    }).filter(function (x) { return x.rank >= 0; })
+      .sort(function (a, b) { return a.rank - b.rank || a.i - b.i; })
+      .map(function (x) { return x.r; });
+  }
   var GrooveTolerance = {
     P: { 1.9: 0.05, 2.4: 0.06, 3.5: 0.08, 5.7: 0.10, 8.4: 0.10 },
     G: { 3.1: 0.10, 5.7: 0.10 }
@@ -39,8 +52,10 @@
     var gi = opt.inner, go = opt.outer, gw = opt.width;
     var hasInner = gi != null, hasOuter = go != null, hasWidth = gw != null;
     var brIndex = { None: 0, One: 1, Both: 2 }[opt.backupRing || 'None'];
+    var name = (opt.name || '').trim(), byName = !!name, table = opt.table;
+    if (byName) { gi = go = gw = null; hasInner = hasOuter = hasWidth = false; table = selectByName(table, 'Name', name); }
 
-    if (!(hasInner || hasOuter || hasWidth)) throw new Error('溝の内径・外径・溝幅のどれか1つ以上を入力してください。');
+    if (!(hasInner || hasOuter || hasWidth || byName)) throw new Error('溝の内径・外径・溝幅のどれか1つ以上を入力してください。');
     [gi, go, gw].forEach(function (v) {
       if (v != null && v <= 0) throw new Error('寸法には0より大きい値を入力してください。');
     });
@@ -62,8 +77,8 @@
     }
 
     var evaluated = [];
-    opt.table.forEach(function (r) {
-      if (c.Series.indexOf(r.Series) < 0) return;
+    table.forEach(function (r) {
+      if (!byName && c.Series.indexOf(r.Series) < 0) return;
 
       var stretch = null;
       if (hasInner) stretch = (gi - r.D1) / r.D1 * 100;
@@ -121,8 +136,15 @@
         .slice(0, MaxResults));
     });
 
+    var total = candidates.length;
+    if (byName) {   // 一致の近い順に最大 NameMaxResults 件
+      total = evaluated.length; candidates = evaluated.slice(0, NameMaxResults);
+      notes = ['呼び番号に「' + name + '」を含むもの（寸法・用途は使いません）'];
+    }
+
     var reasons = [];
-    if (candidates.length === 0) {
+    if (byName) { if (!candidates.length) reasons.push('呼び番号に「' + name + '」を含むOリングはありません。'); }
+    else if (candidates.length === 0) {
       var fitting = evaluated.filter(function (x) { return x.StretchOk; });
       if (fitting.length === 0) {
         reasons.push(hasInner
@@ -141,7 +163,7 @@
 
     return {
       GrooveDepth: hasInner && hasOuter ? (go - gi) / 2 : null,
-      Candidates: candidates, Reasons: reasons, Notes: notes
+      Candidates: candidates, Reasons: reasons, Notes: notes, ByName: byName, Total: total
     };
   }
 
@@ -228,8 +250,11 @@
 
   function findPacking(opt) {
     var gi = opt.inner, go = opt.outer, gw = opt.width;
+    var products = opt.products || PackingProducts, table = opt.table;
+    var name = (opt.name || '').trim(), byName = !!name;
+    if (byName) { gi = go = gw = null; table = selectByName(table.filter(function (r) { return products.indexOf(r.Product) >= 0; }), 'Code', name); }
     var hasInner = gi != null, hasOuter = go != null, hasWidth = gw != null;
-    if (!(hasInner || hasOuter || hasWidth)) throw new Error('溝の内径・外径・溝幅のどれか1つ以上を入力してください。');
+    if (!(hasInner || hasOuter || hasWidth || byName)) throw new Error('溝の内径・外径・溝幅のどれか1つ以上を入力してください。');
     [gi, go, gw].forEach(function (v) {
       if (v != null && v <= 0) throw new Error('寸法には0より大きい値を入力してください。');
     });
@@ -245,8 +270,8 @@
     }
 
     var matched = [];
-    opt.table.forEach(function (r, i) {
-      if ((opt.products || PackingProducts).indexOf(r.Product) < 0) return;
+    table.forEach(function (r, i) {
+      if (products.indexOf(r.Product) < 0) return;
       var w = withBR ? r.GB : r.GA, dev = 0, e;
       if (hasInner) { e = Math.abs(gi - r.D1); if (e > PackingDiaTol + 1e-9) return; dev += e; }
       if (hasOuter) { e = Math.abs(go - r.D2); if (e > PackingDiaTol + 1e-9) return; dev += e; }
@@ -262,13 +287,15 @@
     matched.forEach(function (m) { if (!groups[m.Product]) { groups[m.Product] = []; names.push(m.Product); } groups[m.Product].push(m); });
     var tops = names.map(function (n) { return groups[n].sort(byDev).slice(0, MaxResults); });
     tops.sort(function (a, b) { return byDev(a[0], b[0]); });
-    var candidates = [].concat.apply([], tops);
+    var candidates = [].concat.apply([], tops), total = candidates.length;
+    var reasons = candidates.length ? [] : ['入力した寸法に合う' + (opt.label || 'パッキン') + 'はありません（許容差の範囲外）。'];
+    if (byName) {   // 一致の近い順（selectByName の順）に最大 NameMaxResults 件
+      total = matched.length; candidates = matched.slice(0, NameMaxResults);
+      notes = ['呼び番号に「' + name + '」を含むもの（寸法は使いません）'];
+      reasons = candidates.length ? [] : ['呼び番号に「' + name + '」を含む' + (opt.label || 'パッキン') + 'はありません。'];
+    }
 
-    return {
-      Candidates: candidates,
-      Reasons: candidates.length ? [] : ['入力した寸法に合う' + (opt.label || 'パッキン') + 'はありません（許容差の範囲外）。'],
-      Notes: notes
-    };
+    return { Candidates: candidates, Reasons: reasons, Notes: notes, ByName: byName, Total: total };
   }
 
   var api = { parseTable: parseTable, findORing: findORing, parsePackingTable: parsePackingTable, findPacking: findPacking, DustProducts: DustProducts, MaxResults: MaxResults };

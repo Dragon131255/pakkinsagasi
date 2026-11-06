@@ -182,3 +182,25 @@ Describe 'Find-Packing（ダストシール）' {
         $r.Reasons[0] | Should Match 'ダストシール'
     }
 }
+
+Describe '呼び番号で探す' {
+    $ptable = @(Get-PackingTable -Path "$root\data\sakagami_hydraulic.csv")
+    It 'Oリング：全角・小文字でも探せ、完全一致が先頭。寸法・用途は使わない' {
+        $r = Find-ORing -GrooveInner 999 -Use Dynamic -Table $table -Name 'ｇ２５'
+        $r.ByName | Should Be $true
+        $r.Candidates[0].Name | Should Be 'G25'
+        $r.Candidates[0].StdOuter | Should Be 30
+    }
+    It 'Uパッキン：ハイフンなしでも探せ、件数は上限まで' {
+        $r = Find-Packing -Table $ptable -Name 'sky40'
+        $r.Candidates[0].Code | Should Be 'SKY-40'
+        $r = Find-Packing -Table $ptable -Name 'UPH'
+        $r.Total | Should BeGreaterThan $NameMaxResults
+        $r.Candidates.Count | Should Be $NameMaxResults
+    }
+    It '検索対象外の製品は出さず、ないときは理由を出す' {
+        $r = Find-Packing -Table $ptable -Name 'GPY'
+        $r.Candidates.Count | Should Be 0
+        $r.Reasons[0] | Should Match 'GPY'
+    }
+}

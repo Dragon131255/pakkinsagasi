@@ -76,6 +76,8 @@
   <form class="card" id="form" novalidate>
     <div class="row"><label for="kind">種類</label>
       <select id="kind"><option value="oring">Oリング（JIS B 2401）</option><option value="packing">Uパッキン（油圧）</option><option value="dust">ダストシール</option></select></div>
+    <div class="row"><label for="pname">呼び番号で探す</label>
+      <input id="pname" autocomplete="off" autocapitalize="characters" placeholder="例 P20、SKY40（一部でも可）"></div>
     <div class="row"><label for="inner"><span class="dot" style="background:var(--inner)"></span><span id="innerLabel">d 溝の内径</span> [mm]</label>
       <input id="inner" inputmode="decimal" autocomplete="off"></div>
     <div class="row" id="outerRow"><label for="outer"><span class="dot" style="background:var(--outer)"></span>D 溝の外径 [mm]</label>
@@ -86,7 +88,7 @@
       <select id="use"><option value="Dynamic">運動用</option><option value="Static" selected>固定用</option></select></div>
     <div class="row"><label for="br"><span class="dot" style="background:var(--br)"></span>バックアップリング</label>
       <select id="br"><option value="None">なし</option><option value="One">片側</option><option value="Both">両側</option></select></div>
-    <div class="actions"><button type="submit">検索</button><span class="hint">空欄の寸法は判定に使いません</span></div>
+    <div class="actions"><button type="submit">検索</button><span class="hint">空欄の寸法は判定に使いません。呼び番号を入れたときは寸法を使いません</span></div>
   </form>
 
   <div class="card" id="figCard">
@@ -330,23 +332,32 @@
   function fmt(v) { return v == null ? '—' : v.toFixed(2).replace(/0$/, ''); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
+  // 件数の行。呼び番号で探したときは全件数と表示した件数を出す（main.ps1 の Get-CountLine と同じ）
+  function countLine(res, how) {
+    if (!res.ByName) return res.Candidates.length + ' 件見つかりました' + how + '。';
+    var t = res.Total + ' 件見つかりました（一致の近い順）。';
+    if (res.Total > res.Candidates.length) t += '先頭 ' + res.Candidates.length + ' 件を表示しています。もう少し詳しく入れると絞り込めます。';
+    return t;
+  }
+
   $('form').addEventListener('submit', function (e) {
     e.preventDefault();
     document.activeElement && document.activeElement.blur();
     try {
       if (!table) throw new Error('規格表を読み込み中です。少し待ってからもう一度押してください。');
-      var inner = readNumber('inner', $('kind').value === 'dust' ? 'ロッド径' : '溝の内径');
+      var name = $('pname').value.trim();   // 呼び番号を入れたときは寸法を読まない
       var isDust = $('kind').value === 'dust';
-      var outer = isDust ? null : readNumber('outer', '溝の外径');
-      var width = isDust ? null : readNumber('width', '溝幅');
+      var inner = name ? null : readNumber('inner', isDust ? 'ロッド径' : '溝の内径');
+      var outer = name || isDust ? null : readNumber('outer', '溝の外径');
+      var width = name || isDust ? null : readNumber('width', '溝幅');
 
       if ($('kind').value === 'dust') {
         if (!dtable) throw new Error('サイズ表を読み込み中です。少し待ってからもう一度押してください。');
-        var dr = Pakkin.findPacking({ inner: inner, outer: outer, width: width, backupRing: 'None', table: dtable, products: Pakkin.DustProducts, label: 'ダストシール' });
+        var dr = Pakkin.findPacking({ inner: inner, outer: outer, width: width, backupRing: 'None', table: dtable, products: Pakkin.DustProducts, label: 'ダストシール', name: name });
         var dl = ['判定条件：' + dr.Notes.join(' / ')];
         if (dr.Candidates.length === 0) dl = dl.concat(dr.Reasons);
         else {
-          dl.push(dr.Candidates.length + ' 件見つかりました（製品ごとに最大 ' + Pakkin.MaxResults + ' 件、寸法の差が小さい順）。');
+          dl.push(countLine(dr, '（製品ごとに最大 ' + Pakkin.MaxResults + ' 件、寸法の差が小さい順）'));
           dl.push('出典：SDR は阪上製作所の製品ページ、DHS はバルカーの油圧用パッキン カタログ、LBH・DKI は NOK の寸法表。使用条件は各社のカタログで確認してください。');
         }
         $('msg').className = ''; $('msg').textContent = dl.join('\n');
@@ -376,11 +387,11 @@
       }
       if ($('kind').value === 'packing') {
         if (!ptable) throw new Error('サイズ表を読み込み中です。少し待ってからもう一度押してください。');
-        var pr = Pakkin.findPacking({ inner: inner, outer: outer, width: width, backupRing: $('br').value, table: ptable });
+        var pr = Pakkin.findPacking({ inner: inner, outer: outer, width: width, backupRing: $('br').value, table: ptable, name: name });
         var pl = ['判定条件：' + pr.Notes.join(' / ')];
         if (pr.Candidates.length === 0) pl = pl.concat(pr.Reasons);
         else {
-          pl.push(pr.Candidates.length + ' 件見つかりました（製品ごとに最大 ' + Pakkin.MaxResults + ' 件、寸法の差が小さい順）。');
+          pl.push(countLine(pr, '（製品ごとに最大 ' + Pakkin.MaxResults + ' 件、寸法の差が小さい順）'));
           pl.push('出典：GPY〜KY は阪上製作所の製品ページ、UHP・MLP・MLR はバルカーの油圧用パッキン カタログ、UPH は NOK の UPH 型 寸法表。使用条件（圧力・速度・温度）は各社のカタログで確認してください。');
         }
         $('msg').className = ''; $('msg').textContent = pl.join('\n');
@@ -412,7 +423,7 @@
         if (ph) $('msg').scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
       }
-      var res = Pakkin.findORing({ inner: inner, outer: outer, width: width, use: $('use').value, backupRing: $('br').value, table: table });
+      var res = Pakkin.findORing({ inner: inner, outer: outer, width: width, use: $('use').value, backupRing: $('br').value, table: table, name: name });
 
       var lines = [];
       if (res.GrooveDepth != null) lines.push('溝深さ ' + res.GrooveDepth.toFixed(2) + ' mm');
@@ -422,7 +433,7 @@
         lines = lines.concat(res.Reasons);
       } else {
         var order = inner != null ? '内径の伸びが小さい順' : outer != null ? 'つぶし率が推奨範囲の中央に近い順' : '溝充填率が上限に近い順';
-        lines.push(res.Candidates.length + ' 件見つかりました（系列ごとに最大 ' + Pakkin.MaxResults + ' 件、' + order + '）。');
+        lines.push(countLine(res, '（系列ごとに最大 ' + Pakkin.MaxResults + ' 件、' + order + '）'));
       }
       var m = $('msg'); m.className = ''; m.textContent = lines.join('\n');
 

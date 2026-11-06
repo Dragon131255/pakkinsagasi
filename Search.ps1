@@ -1,6 +1,27 @@
 ﻿# 計算・判定・並べ替え（画面に依存しない）
 # 使う前に Config.ps1 をドットソースしておくこと
 
+# 呼び番号の比較用：全角→半角、大文字にし、ハイフン・空白・* などを除く（例 'sky-40' → 'SKY40'、'ⓉSGY' → 'TSGY'）
+function ConvertTo-NameKey([string]$s) {
+    if ($null -eq $s) { return '' }
+    ($s.Normalize([Text.NormalizationForm]::FormKC).ToUpperInvariant()) -replace '[\s\-_*・－ー]', ''
+}
+
+# 呼び番号に $Name を含む行を、完全一致 → 前方一致 → 部分一致、表の順で返す
+function Select-ByName {
+    param([object[]]$Table, [string]$Property, [string]$Name)
+    $key = ConvertTo-NameKey $Name
+    $i = 0
+    $hits = foreach ($r in $Table) {
+        $k = ConvertTo-NameKey $r.$Property
+        $i++
+        if (-not $k.Contains($key)) { continue }
+        $rank = if ($k -eq $key) { 0 } elseif ($k.StartsWith($key)) { 1 } else { 2 }
+        [pscustomobject]@{ Row = $r; Rank = $rank; Order = $i }
+    }
+    @($hits | Sort-Object Rank, Order | ForEach-Object { $_.Row })
+}
+
 function Get-ORingTable {
     param([Parameter(Mandatory)][string]$Path)
     Import-Csv -Path $Path -Encoding UTF8 | ForEach-Object {
@@ -22,15 +43,23 @@ function Find-ORing {
         [Parameter(Mandatory)][ValidateSet('Dynamic', 'Static')][string]$Use,
         [Parameter(Mandatory)][object[]]$Table,
         # バックアップリング：なし / 片側 / 両側
-        [ValidateSet('None', 'One', 'Both')][string]$BackupRing = 'None'
+        [ValidateSet('None', 'One', 'Both')][string]$BackupRing = 'None',
+        # 呼び番号（一部でよい）。入れたときは寸法・用途を使わず、呼び番号に含むものを出す
+        [string]$Name
     )
     $brIndex = @{ None = 0; One = 1; Both = 2 }[$BackupRing]
+
+    $byName = -not [string]::IsNullOrWhiteSpace($Name)
+    if ($byName) {
+        $GrooveInner = $null; $GrooveOuter = $null; $GrooveWidth = $null
+        $Table = Select-ByName $Table 'Name' $Name
+    }
 
     $hasInner = $null -ne $GrooveInner
     $hasOuter = $null -ne $GrooveOuter
     $hasWidth = $null -ne $GrooveWidth
 
-    if (-not ($hasInner -or $hasOuter -or $hasWidth)) {
+    if (-not ($hasInner -or $hasOuter -or $hasWidth -or $byName)) {
         throw '溝の内径・外径・溝幅のどれか1つ以上を入力してください。'
     }
     foreach ($v in @($GrooveInner, $GrooveOuter, $GrooveWidth)) {
@@ -57,7 +86,7 @@ function Find-ORing {
     }
 
     $evaluated = foreach ($r in $Table) {
-        if ($c.Series -notcontains $r.Series) { continue }
+        if (-not $byName -and $c.Series -notcontains $r.Series) { continue }
 
         $stretch = $null
         if ($hasInner) { $stretch = ($GrooveInner - $r.D1) / $r.D1 * 100 }
@@ -131,9 +160,20 @@ function Find-ORing {
             Sort-Object $sortKey |
             Select-Object -First $MaxResults
     })
+    # 呼び番号で探したときは、一致の近い順（Select-ByName の順）に最大 $NameMaxResults 件
+    $total = $candidates.Count
+    if ($byName) {
+        $evaluated = @($evaluated)
+        $total = $evaluated.Count
+        $candidates = @($evaluated | Select-Object -First $NameMaxResults)
+        $notes = @("呼び番号に「$($Name.Trim())」を含むもの（寸法・用途は使いません）")
+    }
 
     $reasons = @()
-    if ($candidates.Count -eq 0) {
+    if ($byName) {
+        if ($candidates.Count -eq 0) { $reasons += "呼び番号に「$($Name.Trim())」を含むOリングはありません。" }
+    }
+    elseif ($candidates.Count -eq 0) {
         $fitting = @($evaluated | Where-Object { $_.StretchOk })
         if ($fitting.Count -eq 0) {
             if ($hasInner) {
@@ -164,6 +204,8 @@ function Find-ORing {
     [pscustomobject]@{
         GrooveDepth = $depth
         Candidates  = $candidates
+        ByName      = $byName
+        Total       = $total
         Reasons     = $reasons
         Notes       = $notes
     }
@@ -245,13 +287,20 @@ function Find-Packing {
         # 検索対象の製品（省略時は Config.ps1 の $PackingProducts）
         [string[]]$Products = $PackingProducts,
         # 候補がないときのメッセージに使う名前
-        [string]$Label = 'パッキン'
+        [string]$Label = 'パッキン',
+        # 呼び番号（一部でよい）。入れたときは寸法を使わず、呼び番号に含むものを出す
+        [string]$Name
     )
+    $byName = -not [string]::IsNullOrWhiteSpace($Name)
+    if ($byName) {
+        $GrooveInner = $null; $GrooveOuter = $null; $GrooveWidth = $null
+        $Table = Select-ByName @($Table | Where-Object { $Products -contains $_.Product }) 'Code' $Name
+    }
     $hasInner = $null -ne $GrooveInner
     $hasOuter = $null -ne $GrooveOuter
     $hasWidth = $null -ne $GrooveWidth
 
-    if (-not ($hasInner -or $hasOuter -or $hasWidth)) {
+    if (-not ($hasInner -or $hasOuter -or $hasWidth -or $byName)) {
         throw '溝の内径・外径・溝幅のどれか1つ以上を入力してください。'
     }
     foreach ($v in @($GrooveInner, $GrooveOuter, $GrooveWidth)) {
@@ -296,11 +345,21 @@ function Find-Packing {
         [pscustomobject]@{ Best = $top[0].Deviation; Order = $top[0].Order; Items = $top }
     } | Sort-Object Best, Order)
     $candidates = @(foreach ($g in $groups) { $g.Items })
+    $total = $candidates.Count
 
     $reasons = @()
-    if ($candidates.Count -eq 0) { $reasons += "入力した寸法に合う$($Label)はありません（許容差の範囲外）。" }
+    if ($byName) {
+        # 一致の近い順（Select-ByName の順）に最大 $NameMaxResults 件
+        $total = $matched.Count
+        $candidates = @($matched | Select-Object -First $NameMaxResults)
+        $notes = @("呼び番号に「$($Name.Trim())」を含むもの（寸法は使いません）")
+        if ($candidates.Count -eq 0) { $reasons += "呼び番号に「$($Name.Trim())」を含む$($Label)はありません。" }
+    }
+    elseif ($candidates.Count -eq 0) { $reasons += "入力した寸法に合う$($Label)はありません（許容差の範囲外）。" }
 
     [pscustomobject]@{
+        ByName     = $byName
+        Total      = $total
         Candidates = $candidates
         Reasons    = $reasons
         Notes      = $notes
