@@ -55,16 +55,20 @@
     - 出典：バルカー 油圧用パッキン カタログ https://23330894.fs1.hubspotusercontent-na2.net/hubfs/23330894/product_document/hydraulic-packing_doc.pdf（p.4 UHP、p.6 MLP、p.17 MLR）
     - H は表の書き方のまま両方入れている（例 `16(16.5)`。括弧の外＝タフレタン、括弧内＝No.2060・4060）。H は表示だけなので文字列で読む。Backup は空欄（カタログにバックアップの指示コードがない）
     - 公差は `$PackingTolerance` に入れていない（表示しないため）。`$ValquaProducts` は図・出典の表示切り替えに使う
+  - NOK の Uパッキン UPH 型（ピストン・ロッド両用、Use=Both）も同じサイズ表に入れている（2026-11-06 追加、ユーザー指示）
+    - 出典：NOK UPH 型 寸法表 https://www.edccorp.com.tw/UploadFile/PK/UPH.pdf（E-92〜E-97、大径寸法表を含む全 236 サイズ）
+    - 列の対応：d→Inner、D→Outer、h→H、HA→GA、HB→GB、Backup＝併用バックアップリング BRT3 の部品番号（GN…、大径寸法表は空欄）。Code は呼び番号（UPH-6.3 など）
+    - 図は `images/uph-piston.png`（E-92 の装着図）・`images/uph-rod.png`（E-94 の装着図）。右側の注記枠は白で消した。`$NokProducts` は出典の表示切り替えに使う
 - サイズ表は `data/sakagami_hydraulic.csv`（列：Product, Use=Piston/Rod/Both, Code=標準の指示コード, Inner=表の d, Outer=表の D, H, GA=溝幅 BRなし, GB=溝幅 BRあり, Backup=併用バックアップの指示コード）
   - 出典：阪上製作所の製品ページ（https://www.sakagami-ltd.co.jp/products/hydraulic-seals/<製品>）の寸法表をそのまま転記（2026-11-05）
   - 列名を d / D にしないこと（Import-Csv は大文字小文字を区別せず重複扱いになる）
 - 判定：d・D・溝幅それぞれ、表の値との差が許容差以内（`Config.ps1` の `$PackingDiaTol`・`$PackingWidthTol`、初期値 0.5mm）。BR なし→GA、片側・両側→GB で比べる（表に両側の溝幅はない）
 - 出力：製品ごとに最大 `$MaxResults` 件、寸法の差が小さい順
-- 検索結果に出す製品は `Config.ps1` の `$PackingProducts`（と search.js の `PackingProducts`）。阪上は **2026-11-05 から一時的に SKY・KY だけ**（ユーザー指示）＋ UHP・MLP・MLR。サイズ表のデータは阪上8製品とも残している
+- 検索結果に出す製品は `Config.ps1` の `$PackingProducts`（と search.js の `PackingProducts`）。阪上は **2026-11-05 から一時的に SKY・KY だけ**（ユーザー指示）＋ UHP・MLP・MLR・UPH。サイズ表のデータは阪上8製品とも残している
 - 公差：検索結果には表示しない（2026-11-06 ユーザー指示で削除）。計算用の指定は残している。公差の指定は `Config.ps1` の `$PackingTolerance`（出典：各製品ページの寸法指示図、2026-11-05 確認）
   - はめあい記号（H8・H9・h8・f8）は ISO 286（JIS B 0401）の表（`$FitIT8` など、1600mm まで）から数値にする
   - SKY・KY は両用なので、ピストンに使う場合とロッドに使う場合の公差を両方表示する
-- 図：Uパッキンを選んだときは、溝の断面図の代わりに寸法指示図（`images/<製品>-piston.png`・`images/<製品>-rod.png`、今は SKY・KY・UHP・MLP・MLR。UHP・MLP はピストン用だけ、MLR はロッド用だけ）を出す。最初は検索結果の先頭の製品、検索結果の行（Web版はカード）を選ぶとその製品の図に切り替わる
+- 図：Uパッキンを選んだときは、溝の断面図の代わりに寸法指示図（`images/<製品>-piston.png`・`images/<製品>-rod.png`、今は SKY・KY・UHP・MLP・MLR・UPH。UHP・MLP はピストン用だけ、MLR はロッド用だけ、UPH は両方）を出す。最初は検索結果の先頭の製品、検索結果の行（Web版はカード）を選ぶとその製品の図に切り替わる
   - 出典：https://www.sakagami-ltd.co.jp/products/hydraulic-seals/<製品> の寸法指示図の余白を切り取ったもの。UHP・MLP・MLR はバルカーのカタログの図を切り取り、B寸法の注記枠は白で消した
   - PowerShell 版は図をクリックでピストン用／ロッド用を切り替え、Web版は2枚を縦に並べる
 

@@ -166,7 +166,9 @@ $fig.Add_Paint({
             $h = [int]($img.Height * $w / $img.Width)
             $g.DrawImage($img, 4, 24 + [int]((168 - $h) / 2), $w, $h)
         }
-        $src = if ($ValquaProducts -contains $p) { "出典：バルカー 油圧用パッキン カタログ $($p)シリーズ" } else { "出典：阪上製作所 $($p)パッキン 製品ページ" }
+        $src = if ($ValquaProducts -contains $p) { "出典：バルカー 油圧用パッキン カタログ $($p)シリーズ" }
+               elseif ($NokProducts -contains $p) { "出典：NOK $($p)型 寸法表" }
+               else { "出典：阪上製作所 $($p)パッキン 製品ページ" }
         Draw-Text $g $src (RGB '#90A4AE') 6 194 $false
         return
     }
@@ -261,7 +263,7 @@ $cmbBR.Add_SelectedIndexChanged({ $fig.Invalidate() })
 
 # 阪上パッキンの図（images/<製品>-piston.png・<製品>-rod.png に置いた寸法指示図）
 $figImages = @{}
-foreach ($p in @('SKY', 'KY', 'UHP', 'MLP', 'MLR')) {
+foreach ($p in @('SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH')) {
     $figImages[$p] = @{}
     foreach ($u in @('Piston', 'Rod')) {
         $f = "$PSScriptRoot\images\$($p.ToLower())-$($u.ToLower()).png"
@@ -374,7 +376,7 @@ $btn.Add_Click({
                 $lines += $result.Reasons
             } else {
                 $lines += "$($result.Candidates.Count) 件見つかりました（製品ごとに最大 $MaxResults 件、寸法の差が小さい順）。"
-                $lines += '出典：GPY〜KY は阪上製作所の製品ページ、UHP・MLP・MLR はバルカーの油圧用パッキン カタログの寸法表。使用条件（圧力・速度・温度）は各社のカタログで確認してください。'
+                $lines += '出典：GPY〜KY は阪上製作所の製品ページ、UHP・MLP・MLR はバルカーの油圧用パッキン カタログ、UPH は NOK の UPH 型 寸法表。使用条件（圧力・速度・温度）は各社のカタログで確認してください。'
             }
             $msg.Text = $lines -join "`r`n"
             # 図は検索結果の先頭の製品にする

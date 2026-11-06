@@ -64,8 +64,11 @@ $FitIT9       = @(25, 30, 36, 43, 52, 62, 74, 87, 100, 115, 130, 140, 155, 175, 
 $FitEsF       = @(-6, -10, -13, -16, -20, -25, -30, -36, -43, -50, -56, -62, -68, -76, -80, -86, -98, -110)
 
 # 検索結果に出す Uパッキンの製品（阪上は一時的に SKY・KY だけにしている）
-# 全製品：'GPY', 'GNY', 'RGY', 'RNY', 'ⓉSGY', 'ⓉSNY', 'SKY', 'KY', 'UHP', 'MLP', 'MLR'
-$PackingProducts = @('SKY', 'KY', 'UHP', 'MLP', 'MLR')
+# 全製品：'GPY', 'GNY', 'RGY', 'RNY', 'ⓉSGY', 'ⓉSNY', 'SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH'
+$PackingProducts = @('SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH')
 
 # バルカーの U パッキン（出典：バルカー 油圧用パッキン カタログ hydraulic-packing_doc.pdf）。UHP・MLP はピストン用、MLR はロッド用
 $ValquaProducts = @('UHP', 'MLP', 'MLR')
+
+# NOK の U パッキン（出典：NOK UPH 型 寸法表 UPH.pdf、edccorp.com.tw 掲載）。ピストン・ロッド両用
+$NokProducts = @('UPH')
