@@ -148,6 +148,19 @@ function Draw-Text($g, $text, $color, $x, $y, $bold) {
     $f.Dispose(); $b.Dispose()
 }
 
+# Oリングの断面図：選んだ結果があるとき、寸法の文字（d・D・G）を色付きの枠で囲む
+function Draw-OringMark($g, $text, $color, $x, $y, $key) {
+    $m = $script:figMark
+    if (-not $m -or -not (@($m.Vals) | Where-Object { $_.k -ceq $key })) { return }
+    $f = New-Object System.Drawing.Font('Yu Gothic UI', 9, [System.Drawing.FontStyle]::Bold)
+    $sz = $g.MeasureString($text, $f); $f.Dispose()
+    $fill = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(50, $color))
+    $pen = New-Object System.Drawing.Pen $color, 2
+    $g.FillRectangle($fill, [single]($x - 2), [single]($y - 1), [single]($sz.Width + 2), [single]($sz.Height + 2))
+    $g.DrawRectangle($pen, [single]($x - 2), [single]($y - 1), [single]($sz.Width + 2), [single]($sz.Height + 2))
+    $fill.Dispose(); $pen.Dispose()
+}
+
 function Get-FigValue($textBox) {
     $s = $textBox.Text.Trim()
     if ($s -eq '') { '' } else { " = $s" }
@@ -276,6 +289,7 @@ $fig.Add_Paint({
 
     # D：中心線 → 穴の面
     Draw-Dim $g $colOuter 30 ($yCenter - 2) 30 $yBore
+    Draw-OringMark $g ('D 溝の外径' + (Get-FigValue $txtOuter)) $colOuter 36 ($yShaft + 26) 'D'
     Draw-Text $g ('D 溝の外径' + (Get-FigValue $txtOuter)) $colOuter 36 ($yShaft + 26) $true
 
     # d：中心線 → 溝底（溝の下に延長線）
@@ -283,13 +297,33 @@ $fig.Add_Paint({
     $ext.DashStyle = 'Dash'
     $g.DrawLine($ext, 140, $yBottom, $gx1, $yBottom)
     Draw-Dim $g $colInner 150 ($yCenter - 2) 150 $yBottom
+    Draw-OringMark $g ('d 溝の内径' + (Get-FigValue $txtInner)) $colInner 156 ($yBottom + 50) 'd'
     Draw-Text $g ('d 溝の内径' + (Get-FigValue $txtInner)) $colInner 156 ($yBottom + 50) $true
 
     # G：溝幅（溝の下に延長線を引いて寸法を入れる）
     $g.DrawLine($ext, $gx1, $yBottom, $gx1, $yBottom + 26)
     $g.DrawLine($ext, $gx2, $yBottom, $gx2, $yBottom + 26)
     Draw-Dim $g $colWidth $gx1 ($yBottom + 20) $gx2 ($yBottom + 20)
+    Draw-OringMark $g ('G 溝幅' + (Get-FigValue $txtWidth)) $colWidth ($gx1 + 70) ($yBottom + 30) 'W'
     Draw-Text $g ('G 溝幅' + (Get-FigValue $txtWidth)) $colWidth ($gx1 + 70) ($yBottom + 30) $true
+
+    # 選んだOリングの標準溝寸法を右上に出す
+    $m = $script:figMark
+    if ($m) {
+        $bf = New-Object System.Drawing.Font('Yu Gothic UI', 9, [System.Drawing.FontStyle]::Bold)
+        $tx = $fig.ClientSize.Width - 6
+        $vals = @($m.Vals); [array]::Reverse($vals)
+        foreach ($x in $vals) {
+            $t = "$($x.l)=$($x.v)"
+            $tx -= $g.MeasureString($t, $bf).Width
+            Draw-Text $g $t $MarkColors[$x.k] $tx 2 $true
+            $tx -= 2
+        }
+        $t = "$($m.Product)："
+        $tx -= $g.MeasureString($t, $bf).Width
+        Draw-Text $g $t (RGB '#263238') $tx 2 $true
+        $bf.Dispose()
+    }
 
     # H：溝深さ（穴の面 → 溝底）
     $g.DrawLine($ext, $gx2, $yBottom, $gx2 + 50, $yBottom)
@@ -397,9 +431,10 @@ $form.Controls.Add($list)
 
 # 阪上パッキンの検索結果で行を選ぶと、図をその製品の寸法指示図にする（図がある製品だけ）
 $list.Add_SelectedIndexChanged({
-    if ($cmbKind.SelectedIndex -lt 1 -or $list.SelectedItems.Count -eq 0) { return }
-    $grp = $list.SelectedItems[0].Group
+    if ($list.SelectedItems.Count -eq 0) { return }
     $script:figMark = $list.SelectedItems[0].Tag
+    if ($cmbKind.SelectedIndex -lt 1) { $fig.Invalidate(); return }   # Oリング：断面図の d・D・G に枠を付け直す
+    $grp = $list.SelectedItems[0].Group
     if ($grp -and $figImages.ContainsKey($grp.Name)) { $script:figProduct = $grp.Name; $fig.Invalidate() }
 })
 
@@ -561,8 +596,15 @@ $btn.Add_Click({
                               elseif ($i % 2 -eq 1) { RGB '#E3F2FD' }
                               else { [System.Drawing.Color]::White }
             if ($i -eq 0) { $item.Font = New-Object System.Drawing.Font('Yu Gothic UI', 10, [System.Drawing.FontStyle]::Bold) }
+            # 図に示す標準溝寸法（断面図の d・D・G の文字に枠を付ける）
+            $item.Tag = @{ Product = $r.Name; Vals = @(
+                @{ k = 'd'; l = 'd'; v = $(if ($null -ne $r.StdInner) { '{0:0.0#}' -f $r.StdInner } else { '—' }) },
+                @{ k = 'D'; l = 'D'; v = $(if ($null -ne $r.StdOuter) { '{0:0.0#}' -f $r.StdOuter } else { '—' }) },
+                @{ k = 'W'; l = 'G'; v = $(if ($null -ne $r.StdWidth) { '{0:0.0#}' -f $r.StdWidth } else { '—' }) }) }
             [void]$list.Items.Add($item)
         }
+        $script:figMark = if ($list.Items.Count -gt 0) { $list.Items[0].Tag } else { $null }   # 最初は先頭の結果を図に示す
+        $fig.Invalidate()
 
         $lines = @()
         if ($null -ne $result.GrooveDepth) { $lines += ('溝深さ {0:N2} mm' -f $result.GrooveDepth) }

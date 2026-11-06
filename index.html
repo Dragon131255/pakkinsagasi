@@ -32,8 +32,11 @@
   .pkMarks { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
   .pkMarks rect { fill-opacity: .18; stroke-width: 4; }
   .cd, .ring dt.cd { color: var(--inner); font-weight: bold; }
-  #pkMarkVals { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: -4px 0 12px; font-size: 15px; font-weight: bold; }
-  #pkMarkVals[hidden] { display: none; }
+  #pkMarkVals, .markVals { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: -4px 0 12px; font-size: 15px; font-weight: bold; }
+  #pkMarkVals[hidden], .markVals[hidden] { display: none; }
+  #orMarkVals { margin-top: 8px; }
+  #orMarks rect { fill-opacity: .18; stroke-width: 2; }
+  .ring.or { cursor: pointer; }
   .cD, .ring dt.cD { color: var(--outer); font-weight: bold; } .cW, .ring dt.cW { color: var(--width); font-weight: bold; } .cC, .ring dt.cC { color: var(--depth); font-weight: bold; }
   .row label { flex: 1 1 50%; font-weight: bold; }
   .row input, .row select { flex: 1 1 50%; min-width: 0; font-size: 16px; padding: 10px; border: 1px solid var(--line);
@@ -119,6 +122,7 @@
           <line x1="170" y1="148" x2="280" y2="148" stroke="#FB8C00"/>
           <line x1="320" y1="48" x2="320" y2="128" stroke="#8E24AA"/>
         </g>
+        <g id="orMarks"></g>
         <text id="figD" x="36" y="110" fill="#43A047">D 溝の外径</text>
         <text id="figd" x="156" y="190" fill="#1E88E5">d 溝の内径</text>
         <text id="figG" x="190" y="170" fill="#FB8C00">G 溝幅</text>
@@ -126,6 +130,7 @@
         <text x="288" y="141" fill="#8E24AA" font-weight="normal">H = (D − d) / 2</text>
       </g>
     </svg>
+    <div id="orMarkVals" class="markVals" hidden></div>
     <div id="pkFig" hidden>
       <div id="pkPiston">
       <div class="figttl"><span class="figP">SKY</span> 寸法指示図（ピストン用）</div>
@@ -244,11 +249,30 @@
       return '<span class="' + MARK_CLASS[x.k] + '">■ ' + esc(x.l) + ' = ' + esc(x.v) + '</span>';
     }).join('');
   }
+  // Oリング：選んだ結果があるとき、断面図の d・D・G の文字を色付きの枠で囲み、図の下に標準溝寸法を出す
+  var orSel = null;
+  function markOring(card) {
+    if (card !== undefined) orSel = card;
+    var g = $('orMarks'), vals = orSel ? JSON.parse(orSel.getAttribute('data-vals')) : [];
+    g.innerHTML = '';
+    vals.forEach(function (x) {
+      var t = $({ d: 'figd', D: 'figD', W: 'figG' }[x.k]), b = t.getBBox();
+      var r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      r.setAttribute('x', b.x - 3); r.setAttribute('y', b.y - 2); r.setAttribute('width', b.width + 6); r.setAttribute('height', b.height + 4);
+      r.setAttribute('rx', 3); r.style.fill = MARK_COLOR[x.k]; r.style.stroke = MARK_COLOR[x.k];
+      g.appendChild(r);
+    });
+    $('orMarkVals').hidden = !vals.length;
+    $('orMarkVals').innerHTML = vals.length ? '<span>' + esc(orSel.getAttribute('data-name')) + '：</span>' + vals.map(function (x) {
+      return '<span class="' + MARK_CLASS[x.k] + '">■ ' + esc(x.l) + ' = ' + esc(x.v) + '</span>';
+    }).join('') : '';
+  }
   $('results').addEventListener('click', function (e) {
-    var card = e.target.closest('.ring.pk');
+    var card = e.target.closest('.ring.pk, .ring.or');
     if (!card) return;
     [].forEach.call(document.querySelectorAll('.ring.sel'), function (el) { el.classList.remove('sel'); });
     card.classList.add('sel');
+    if (card.classList.contains('or')) { markOring(card); $('figCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     setPackingFig(card.getAttribute('data-product'));
     markFig(card);
     $('figCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -264,7 +288,7 @@
     $('outerRow').hidden = dust; $('widthRow').hidden = dust;   // ダストシールはロッド径だけで検索
     document.querySelector('#figCard svg').style.display = pk || dust ? 'none' : '';
     if (pk) setPackingFig('SKY'); else if (dust) setPackingFig('SDR');
-    markFig(null);
+    markFig(null); markOring(null);
     $('pkFig').hidden = !(pk || dust);
     $('msg').className = ''; $('msg').textContent = '寸法を入力して［検索］を押してください。'; $('results').innerHTML = '';
   });
@@ -288,6 +312,7 @@
     $('brlabel').setAttribute('display', sides.length ? 'inline' : 'none');
     var o = $('oring');
     o.setAttribute('cx', (x1 + x2) / 2); o.setAttribute('rx', (x2 - x1) / 2);
+    if (typeof markOring === 'function') markOring();   // 文字の長さが変わったら枠も合わせる
   }
   ['inner', 'outer', 'width'].forEach(function (id) { $(id).addEventListener('input', updateFig); });
   $('br').addEventListener('change', updateFig);
@@ -300,7 +325,7 @@
     return parseFloat(s);
   }
 
-  function showError(text) { var m = $('msg'); m.className = 'error'; m.textContent = text; $('results').innerHTML = ''; }
+  function showError(text) { var m = $('msg'); m.className = 'error'; m.textContent = text; $('results').innerHTML = ''; markOring(null); markFig(null); }
   // '{0:0.0#}' と同じ：小数1〜2桁
   function fmt(v) { return v == null ? '—' : v.toFixed(2).replace(/0$/, ''); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -407,7 +432,8 @@
         if (!list.length) return;
         html += '<h2>' + s + '系列（' + list.length + ' 件）</h2>';
         list.forEach(function (r, i) {
-          html += '<div class="ring' + (i === 0 ? ' top' : i % 2 ? ' alt' : '') + '">'
+          var ov = [{ k: 'd', l: 'd', v: withTol(fmt(r.StdInner), r.TolInner) }, { k: 'D', l: 'D', v: withTol(fmt(r.StdOuter), r.TolOuter) }, { k: 'W', l: 'G', v: withTol(fmt(r.StdWidth), r.TolWidth) }];
+          html += '<div class="ring or' + (i === 0 ? ' top' : i % 2 ? ' alt' : '') + '" data-name="' + esc(r.Name) + '" data-vals="' + esc(JSON.stringify(ov)) + '">'
             + '<div class="name">' + esc(r.Name) + '<small>線径 d2 ' + r.D2.toFixed(1) + ' / 内径 d1 ' + r.D1.toFixed(1) + '</small></div><dl>'
             + '<dt class="cd">溝内径 d</dt><dd>' + fmt(r.StdInner) + '（' + esc(r.TolInner) + '）</dd>'
             + '<dt class="cD">溝外径 D</dt><dd>' + fmt(r.StdOuter) + '（' + esc(r.TolOuter) + '）</dd>'
@@ -416,6 +442,7 @@
         });
       });
       $('results').innerHTML = html;
+      markOring(document.querySelector('#results .ring.or'));   // 最初は先頭の結果の寸法を図に示す
       if (html) $('msg').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (err) {
       showError(err.message);
