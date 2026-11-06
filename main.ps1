@@ -131,6 +131,11 @@ function Draw-Dim($g, $color, $x1, $y1, $x2, $y2) {
     $p.Dispose()
 }
 
+# 製品のメーカー名（検索結果の一覧に出す）
+function Get-Maker($product) {
+    if ($ValquaProducts -contains $product) { 'バルカー' } elseif ($NokProducts -contains $product) { 'NOK' } else { '阪上製作所' }
+}
+
 function Draw-Text($g, $text, $color, $x, $y, $bold) {
     $style = if ($bold) { [System.Drawing.FontStyle]::Bold } else { [System.Drawing.FontStyle]::Regular }
     $f = New-Object System.Drawing.Font('Yu Gothic UI', 9, $style)
@@ -292,7 +297,7 @@ function Set-Columns {
         [void]$list.Columns.Add('H', 70)
         [void]$list.Columns.Add('溝幅', 60)
         [void]$list.Columns.Add('バックアップリング', 110)
-        [void]$list.Columns.Add('寸法の差', 60)
+        [void]$list.Columns.Add('メーカー', 80)
     } else {
         [void]$list.Columns.Add('呼び番号', 80)
         [void]$list.Columns.Add('線径 d2', 75)
@@ -364,7 +369,7 @@ $btn.Add_Click({
                 $i = [int]$rank[$r.Product]; $rank[$r.Product] = $i + 1
                 $item = New-Object System.Windows.Forms.ListViewItem($r.Code)
                 $item.Group = $groups[$r.Product]
-                foreach ($v in @($useName[$r.Use], $r.D1, $r.D2, $r.H, $r.Width, $(if ($r.Backup) { $r.Backup } else { '—' }), ('{0:0.0#}' -f $r.Deviation))) {
+                foreach ($v in @($useName[$r.Use], $r.D1, $r.D2, $r.H, $r.Width, $(if ($r.Backup) { $r.Backup } else { '—' }), (Get-Maker $r.Product))) {
                     [void]$item.SubItems.Add([string]$v)
                 }
                 $item.BackColor = if ($i -eq 0) { RGB '#C8E6C9' } else { RGB '#E3F2FD' }
