@@ -182,7 +182,7 @@ function Get-PackingTable {
             Code    = $_.Code
             D1      = [double]$_.Inner
             D2      = [double]$_.Outer
-            H       = [double]$_.H
+            H       = [string]$_.H   # 文字列（バルカーは「16(16.5)」のように括弧内に No.2060・4060 用の値も持つ）
             GA      = [double]$_.GA
             GB      = [double]$_.GB
             Backup  = $_.Backup

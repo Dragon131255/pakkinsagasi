@@ -96,17 +96,17 @@ Describe 'Find-ORing' {
 
 Describe 'Find-Packing' {
     $ptable = @(Get-PackingTable -Path "$root\data\sakagami_hydraulic.csv")
-    $allProducts = @('GPY', 'GNY', 'RGY', 'RNY', 'ⓉSGY', 'ⓉSNY', 'SKY', 'KY')
+    $allProducts = @('GPY', 'GNY', 'RGY', 'RNY', 'ⓉSGY', 'ⓉSNY', 'SKY', 'KY', 'UHP', 'MLP', 'MLR')
 
-    It '製品を指定しないときは Config.ps1 の $PackingProducts（今は SKY・KY だけ）が出る' {
+    It '製品を指定しないときは Config.ps1 の $PackingProducts（今は SKY・KY・UHP・MLP・MLR）が出る' {
         $r = Find-Packing -GrooveInner 40 -GrooveOuter 50 -Table $ptable
         $r.Candidates.Count -gt 0 | Should Be $true
         @($r.Candidates | Where-Object { $PackingProducts -notcontains $_.Product }).Count | Should Be 0
     }
 
-    It 'サイズ表を読める（8製品・484サイズ）' {
-        $ptable.Count | Should Be 484
-        @($ptable | Select-Object -ExpandProperty Product -Unique).Count | Should Be 8
+    It 'サイズ表を読める（11製品・521サイズ）' {
+        $ptable.Count | Should Be 521
+        @($ptable | Select-Object -ExpandProperty Product -Unique).Count | Should Be 11
     }
 
     It 'd30・D40・溝幅7：寸法がぴったりのサイズが製品ごとに出る' {

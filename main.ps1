@@ -22,7 +22,7 @@ $colMain   = RGB '#1565C0'   # 見出し・ボタン
 $colBg     = RGB '#F3F6FB'
 
 $form = New-Object System.Windows.Forms.Form
-$form.Text = 'パッキン探し（JIS B 2401 Oリング・阪上パッキン）'
+$form.Text = 'パッキン探し（JIS B 2401 Oリング・Uパッキン）'
 $form.ClientSize = New-Object System.Drawing.Size(745, 760)
 $form.StartPosition = 'CenterScreen'
 $form.Font = New-Object System.Drawing.Font('Yu Gothic UI', 10)
@@ -68,7 +68,7 @@ $cmbKind = New-Object System.Windows.Forms.ComboBox
 $cmbKind.Location = New-Object System.Drawing.Point(190, 65)
 $cmbKind.Width = 130
 $cmbKind.DropDownStyle = 'DropDownList'
-[void]$cmbKind.Items.AddRange(@('Oリング', '阪上パッキン'))
+[void]$cmbKind.Items.AddRange(@('Oリング', 'Uパッキン'))
 $cmbKind.SelectedIndex = 0
 $form.Controls.Add($cmbKind)
 
@@ -153,17 +153,21 @@ $fig.Add_Paint({
     # 阪上パッキンのときは阪上製作所の寸法指示図を出す（クリックでピストン用／ロッド用、検索結果の行を選ぶと製品を切り替え）
     if ($cmbKind.SelectedIndex -eq 1) {
         $p = $script:figProduct
-        $img = $figImages[$p][$(if ($script:figRod) { 'Rod' } else { 'Piston' })]
-        $title = "$p 寸法指示図（" + $(if ($script:figRod) { 'ロッド用' } else { 'ピストン用' }) + '）'
+        $useRod = $script:figRod
+        # ピストン用だけ・ロッド用だけの製品（UHP・MLP・MLR）は、ある方の図を出す
+        if (-not $figImages[$p][$(if ($useRod) { 'Rod' } else { 'Piston' })]) { $useRod = -not $useRod }
+        $img = $figImages[$p][$(if ($useRod) { 'Rod' } else { 'Piston' })]
+        $title = "$p 寸法指示図（" + $(if ($useRod) { 'ロッド用' } else { 'ピストン用' }) + '）'
         Draw-Text $g $title (RGB '#263238') 6 2 $true
-        Draw-Text $g 'クリックで切替' (RGB '#607D8B') 300 2 $false
+        if ($figImages[$p]['Piston'] -and $figImages[$p]['Rod']) { Draw-Text $g 'クリックで切替' (RGB '#607D8B') 300 2 $false }
         if ($img) {
             $g.InterpolationMode = 'HighQualityBicubic'
             $w = $fig.ClientSize.Width - 8
             $h = [int]($img.Height * $w / $img.Width)
             $g.DrawImage($img, 4, 24 + [int]((168 - $h) / 2), $w, $h)
         }
-        Draw-Text $g "出典：阪上製作所 $($p)パッキン 製品ページ" (RGB '#90A4AE') 6 194 $false
+        $src = if ($ValquaProducts -contains $p) { "出典：バルカー 油圧用パッキン カタログ $($p)シリーズ" } else { "出典：阪上製作所 $($p)パッキン 製品ページ" }
+        Draw-Text $g $src (RGB '#90A4AE') 6 194 $false
         return
     }
 
@@ -257,7 +261,7 @@ $cmbBR.Add_SelectedIndexChanged({ $fig.Invalidate() })
 
 # 阪上パッキンの図（images/<製品>-piston.png・<製品>-rod.png に置いた寸法指示図）
 $figImages = @{}
-foreach ($p in @('SKY', 'KY')) {
+foreach ($p in @('SKY', 'KY', 'UHP', 'MLP', 'MLR')) {
     $figImages[$p] = @{}
     foreach ($u in @('Piston', 'Rod')) {
         $f = "$PSScriptRoot\images\$($p.ToLower())-$($u.ToLower()).png"
@@ -281,10 +285,10 @@ function Set-Columns {
     if ($cmbKind.SelectedIndex -eq 1) {
         [void]$list.Columns.Add('指示コード', 95)
         [void]$list.Columns.Add('使用箇所', 70)
-        [void]$list.Columns.Add('d（公差）', 175)
-        [void]$list.Columns.Add('D（公差）', 175)
-        [void]$list.Columns.Add('H', 40)
-        [void]$list.Columns.Add('溝幅（公差）', 110)
+        [void]$list.Columns.Add('d', 60)
+        [void]$list.Columns.Add('D', 60)
+        [void]$list.Columns.Add('H', 70)
+        [void]$list.Columns.Add('溝幅', 60)
         [void]$list.Columns.Add('バックアップリング', 110)
         [void]$list.Columns.Add('寸法の差', 60)
     } else {
@@ -358,7 +362,7 @@ $btn.Add_Click({
                 $i = [int]$rank[$r.Product]; $rank[$r.Product] = $i + 1
                 $item = New-Object System.Windows.Forms.ListViewItem($r.Code)
                 $item.Group = $groups[$r.Product]
-                foreach ($v in @($useName[$r.Use], "$($r.D1)（$($r.TolInner)）", "$($r.D2)（$($r.TolOuter)）", $r.H, "$($r.Width)（$($r.TolWidth)）", $(if ($r.Backup) { $r.Backup } else { '—' }), ('{0:0.0#}' -f $r.Deviation))) {
+                foreach ($v in @($useName[$r.Use], $r.D1, $r.D2, $r.H, $r.Width, $(if ($r.Backup) { $r.Backup } else { '—' }), ('{0:0.0#}' -f $r.Deviation))) {
                     [void]$item.SubItems.Add([string]$v)
                 }
                 $item.BackColor = if ($i -eq 0) { RGB '#C8E6C9' } else { RGB '#E3F2FD' }
@@ -370,7 +374,7 @@ $btn.Add_Click({
                 $lines += $result.Reasons
             } else {
                 $lines += "$($result.Candidates.Count) 件見つかりました（製品ごとに最大 $MaxResults 件、寸法の差が小さい順）。"
-                $lines += '出典：阪上製作所の製品ページの寸法表。使用条件（圧力・速度・温度）は阪上製作所のカタログで確認してください。'
+                $lines += '出典：GPY〜KY は阪上製作所の製品ページ、UHP・MLP・MLR はバルカーの油圧用パッキン カタログの寸法表。使用条件（圧力・速度・温度）は各社のカタログで確認してください。'
             }
             $msg.Text = $lines -join "`r`n"
             # 図は検索結果の先頭の製品にする
