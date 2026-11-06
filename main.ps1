@@ -577,7 +577,7 @@ $btn.Add_Click({
         $groups = @{}
         foreach ($s in @($result.Candidates | ForEach-Object { $_.Series } | Select-Object -Unique)) {
             $n = @($result.Candidates | Where-Object { $_.Series -eq $s }).Count
-            $groups[$s] = $list.Groups.Add($s, "$s系列（$n 件）")
+            $groups[$s] = $list.Groups.Add($s, "$($s)系列（$n 件）")   # "$s系列" だと「s系列」という変数名になるので $() で囲む
         }
         $rank = @{}
         foreach ($r in $result.Candidates) {
