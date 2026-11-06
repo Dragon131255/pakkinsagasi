@@ -103,7 +103,7 @@ $cmbBR.SelectedIndex = 0
 $form.Controls.Add($cmbBR)
 
 # 呼び番号で探す（入れたときは寸法を使わない）
-New-Label '呼び番号' 132 269
+New-Label '検索' 150 269
 $txtName = New-Object System.Windows.Forms.TextBox
 $txtName.Location = New-Object System.Drawing.Point(190, 266)
 $txtName.Width = 130
