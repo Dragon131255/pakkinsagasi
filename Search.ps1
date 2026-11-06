@@ -186,6 +186,7 @@ function Get-PackingTable {
             GA      = [double]$_.GA
             GB      = [double]$_.GB
             Backup  = $_.Backup
+            DiaD1   = $_.D1Dia   # 表の D1（ピストン側のランド径など。ない製品は空欄）
         }
     }
 }
@@ -271,7 +272,7 @@ function Find-Packing {
         $tol = Get-PackingTol $r
         [pscustomobject]@{
             Product = $r.Product; Use = $r.Use; Code = $r.Code
-            D1 = $r.D1; D2 = $r.D2; H = $r.H; Width = $w
+            D1 = $r.D1; D2 = $r.D2; DiaD1 = $r.DiaD1; H = $r.H; Width = $w
             Backup = if ($withBR) { $r.Backup } else { '' }
             TolInner = $tol.Inner; TolOuter = $tol.Outer; TolWidth = $tol.Width
             Deviation = $dev; Order = $i

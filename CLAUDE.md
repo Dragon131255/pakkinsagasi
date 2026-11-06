@@ -59,11 +59,13 @@
     - 出典：NOK UPH 型 寸法表 https://www.edccorp.com.tw/UploadFile/PK/UPH.pdf（E-92〜E-97、大径寸法表を含む全 236 サイズ）
     - 列の対応：d→Inner、D→Outer、h→H、HA→GA、HB→GB、Backup＝併用バックアップリング BRT3 の部品番号（GN…、大径寸法表は空欄）。Code は呼び番号（UPH-6.3 など）
     - 図は `images/uph-piston.png`（E-92 の装着図）・`images/uph-rod.png`（E-94 の装着図）。右側の注記枠は白で消した。`$NokProducts` は出典の表示切り替えに使う
-- サイズ表は `data/sakagami_hydraulic.csv`（列：Product, Use=Piston/Rod/Both, Code=標準の指示コード, Inner=表の d, Outer=表の D, H, GA=溝幅 BRなし, GB=溝幅 BRあり, Backup=併用バックアップの指示コード）
+- サイズ表は `data/sakagami_hydraulic.csv`（列：Product, Use=Piston/Rod/Both, Code=標準の指示コード, Inner=表の d, Outer=表の D, H, GA=溝幅 BRなし, GB=溝幅 BRあり, Backup=併用バックアップの指示コード, D1Dia=表の D1）
   - 出典：阪上製作所の製品ページ（https://www.sakagami-ltd.co.jp/products/hydraulic-seals/<製品>）の寸法表をそのまま転記（2026-11-05）
   - 列名を d / D にしないこと（Import-Csv は大文字小文字を区別せず重複扱いになる）
 - 判定：d・D・溝幅それぞれ、表の値との差が許容差以内（`Config.ps1` の `$PackingDiaTol`・`$PackingWidthTol`、初期値 0.5mm）。BR なし→GA、片側・両側→GB で比べる（表に両側の溝幅はない）
 - 出力：製品ごとに最大 `$MaxResults` 件、寸法の差が小さい順
+  - 一覧の列：指示コード・使用箇所・d・D1・H・溝幅・バックアップリング・メーカー（D の代わりに D1 を出す。2026-11-06 ユーザー指示）
+  - D1 は各出典の表の D1：阪上は製品ページの寸法表（GNY・RNY・ⓉSNY は D1 がないので空欄）、バルカーは UHP・MLP の表（MLR は D1 がないので空欄）、NOK UPH は φD1。空欄は「—」と表示
 - 検索結果に出す製品は `Config.ps1` の `$PackingProducts`（と search.js の `PackingProducts`）。阪上は **2026-11-05 から一時的に SKY・KY だけ**（ユーザー指示）＋ UHP・MLP・MLR・UPH。サイズ表のデータは阪上8製品とも残している
 - 公差：検索結果には表示しない（2026-11-06 ユーザー指示で削除）。計算用の指定は残している。公差の指定は `Config.ps1` の `$PackingTolerance`（出典：各製品ページの寸法指示図、2026-11-05 確認）
   - はめあい記号（H8・H9・h8・f8）は ISO 286（JIS B 0401）の表（`$FitIT8` など、1600mm まで）から数値にする

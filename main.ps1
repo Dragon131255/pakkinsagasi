@@ -293,7 +293,7 @@ function Set-Columns {
         [void]$list.Columns.Add('指示コード', 95)
         [void]$list.Columns.Add('使用箇所', 70)
         [void]$list.Columns.Add('d', 60)
-        [void]$list.Columns.Add('D', 60)
+        [void]$list.Columns.Add('D1', 60)
         [void]$list.Columns.Add('H', 70)
         [void]$list.Columns.Add('溝幅', 60)
         [void]$list.Columns.Add('バックアップリング', 110)
@@ -369,7 +369,7 @@ $btn.Add_Click({
                 $i = [int]$rank[$r.Product]; $rank[$r.Product] = $i + 1
                 $item = New-Object System.Windows.Forms.ListViewItem($r.Code)
                 $item.Group = $groups[$r.Product]
-                foreach ($v in @($useName[$r.Use], $r.D1, $r.D2, $r.H, $r.Width, $(if ($r.Backup) { $r.Backup } else { '—' }), (Get-Maker $r.Product))) {
+                foreach ($v in @($useName[$r.Use], $r.D1, $(if ($r.DiaD1) { $r.DiaD1 } else { '—' }), $r.H, $r.Width, $(if ($r.Backup) { $r.Backup } else { '—' }), (Get-Maker $r.Product))) {
                     [void]$item.SubItems.Add([string]$v)
                 }
                 $item.BackColor = if ($i -eq 0) { RGB '#C8E6C9' } else { RGB '#E3F2FD' }
