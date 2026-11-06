@@ -29,8 +29,9 @@
   /* ダストシール：選んだ結果の D・溝幅を図の上で色付けする */
   .figWrap { position: relative; margin-bottom: 12px; }
   #pkFig .figWrap img { margin-bottom: 0; }
-  #pkMarks { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
-  #pkMarks rect { fill-opacity: .18; stroke-width: 4; }
+  .pkMarks { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+  .pkMarks rect { fill-opacity: .18; stroke-width: 4; }
+  .cd, .ring dt.cd { color: var(--inner); font-weight: bold; }
   #pkMarkVals { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: -4px 0 12px; font-size: 15px; font-weight: bold; }
   #pkMarkVals[hidden] { display: none; }
   .cD, .ring dt.cD { color: var(--outer); font-weight: bold; } .cW, .ring dt.cW { color: var(--width); font-weight: bold; } .cC, .ring dt.cC { color: var(--depth); font-weight: bold; }
@@ -128,13 +129,13 @@
     <div id="pkFig" hidden>
       <div id="pkPiston">
       <div class="figttl"><span class="figP">SKY</span> 寸法指示図（ピストン用）</div>
-      <img id="pkImgPiston" src="images/sky-piston.png" alt="寸法指示図（ピストン用）">
+      <div class="figWrap"><img id="pkImgPiston" src="images/sky-piston.png" alt="寸法指示図（ピストン用）"><svg id="pkMarksPiston" class="pkMarks" preserveAspectRatio="none" aria-hidden="true"></svg></div>
       </div>
       <div id="pkRod">
       <div class="figttl"><span class="figP">SKY</span> 寸法指示図（ロッド用）</div>
-      <div class="figWrap"><img id="pkImgRod" src="images/sky-rod.png" alt="寸法指示図（ロッド用）"><svg id="pkMarks" preserveAspectRatio="none" aria-hidden="true"></svg></div>
-      <div id="pkMarkVals" hidden></div>
+      <div class="figWrap"><img id="pkImgRod" src="images/sky-rod.png" alt="寸法指示図（ロッド用）"><svg id="pkMarksRod" class="pkMarks" preserveAspectRatio="none" aria-hidden="true"></svg></div>
       </div>
+      <div id="pkMarkVals" hidden></div>
       <div class="hint">出典：<span id="pkSrc">阪上製作所 <span class="figP">SKY</span>パッキン 製品ページ</span>。検索結果をタップすると、その製品の図に切り替わります。</div>
     </div>
   </div>
@@ -194,35 +195,54 @@
       : '阪上製作所 <span class="figP"></span>パッキン 製品ページ';
     [].forEach.call(document.querySelectorAll('.figP'), function (el) { el.textContent = p; });
   }
-  // ダストシールの図で D・溝幅の寸法記号がある場所（画像のピクセル座標 [x, y, 幅, 高さ]）
-  var DUST_MARKS = {
-    SDR: { w: 1200, h: 569, D: [128, 240, 48, 110], W: [214, 66, 88, 32], C: [324, 238, 34, 110] },
-    DHS: { w: 1200, h: 367, D: [264, 170, 40, 130], W: [408, 48, 32, 26], C: [494, 168, 32, 95] },
-    LBH: { w: 1200, h: 752, D: [552, 385, 36, 88], W: [772, 22, 92, 32], C: [904, 378, 34, 108] },
-    DKI: { w: 1200, h: 801, D: [562, 360, 38, 105], W: [812, 14, 42, 32] }
+  // 寸法指示図で各寸法の記号がある場所（画像のピクセル座標 [x, y, 幅, 高さ]）。キーは画像名
+  // ダストシール：D・W（溝幅）・C ／ Uパッキン：d・D1・GA・GB（UPH の図では HA・HB）
+  var FIG_MARKS = {
+    'sdr-rod': { w: 1200, h: 569, D: [128, 240, 48, 110], W: [214, 66, 88, 32], C: [324, 238, 34, 110] },
+    'dhs-rod': { w: 1200, h: 367, D: [264, 170, 40, 130], W: [408, 48, 32, 26], C: [494, 168, 32, 95] },
+    'lbh-rod': { w: 1200, h: 752, D: [552, 385, 36, 88], W: [772, 22, 92, 32], C: [904, 378, 34, 108] },
+    'dki-rod': { w: 1200, h: 801, D: [562, 360, 38, 105], W: [812, 14, 42, 32] },
+    'sky-piston': { w: 1200, h: 428, d: [452, 190, 36, 80], D1: [302, 178, 32, 115], GA: [380, 170, 70, 28], GB: [570, 170, 70, 28] },
+    'sky-rod': { w: 1200, h: 478, d: [272, 205, 32, 75], GA: [172, 48, 80, 30], GB: [176, 396, 80, 30] },
+    'ky-piston': { w: 848, h: 303, d: [302, 135, 26, 70], D1: [192, 120, 26, 95], GA: [242, 118, 58, 22], GB: [377, 118, 58, 22] },
+    'ky-rod': { w: 1200, h: 487, d: [322, 210, 32, 80], GA: [172, 62, 82, 30], GB: [172, 393, 82, 30] },
+    'uhp-piston': { w: 1200, h: 387, d: [420, 188, 30, 70], D1: [274, 175, 30, 85], GA: [350, 178, 34, 26], GB: [508, 178, 40, 26] },
+    'mlp-piston': { w: 1200, h: 391, d: [418, 182, 32, 70], D1: [270, 172, 30, 90], GA: [344, 180, 38, 28], GB: [500, 178, 46, 28] },
+    'mlr-rod': { w: 1200, h: 370, d: [418, 118, 32, 72], GA: [356, 8, 44, 28], GB: [355, 294, 46, 30] },
+    'uph-piston': { w: 1200, h: 605, d: [442, 268, 30, 68], D1: [768, 243, 32, 90], GA: [434, 502, 66, 26], GB: [632, 502, 74, 26] },
+    'uph-rod': { w: 1200, h: 634, d: [378, 298, 32, 100], GA: [606, 592, 78, 28], GB: [598, 48, 84, 28] }
   };
+  var MARK_COLOR = { d: 'var(--inner)', D: 'var(--outer)', D1: 'var(--depth)', C: 'var(--depth)', W: 'var(--width)', GA: 'var(--width)', GB: 'var(--width)' };
+  var MARK_CLASS = { d: 'cd', D: 'cD', D1: 'cC', C: 'cC', W: 'cW', GA: 'cW', GB: 'cW' };
+  // 値に公差を（ ）で付ける（カードの data-vals と図の下の数値用）
+  function withTol(v, t) { return v + (t && t !== '—' ? '（' + t + '）' : ''); }
   // 入口側の穴径（データの D1Dia）の、図での記号。DKI の図にはない
   var C_LABEL = { SDR: 'C', DHS: 'C', LBH: 'S' };
   // 溝幅の、図での記号
   var W_LABEL = { SDR: 'G', DHS: 'G', LBH: 'H', DKI: 'H' };
-  // 選んだカードの D・溝幅を図の上に色付きの枠で示し、図の下に数値を出す（card が null なら消す）
-  function markDust(card) {
-    var svg = $('pkMarks'), m = card && DUST_MARKS[card.getAttribute('data-product')];
-    svg.innerHTML = '';
-    $('pkMarkVals').hidden = !m;
-    if (!m) return;
-    svg.setAttribute('viewBox', '0 0 ' + m.w + ' ' + m.h);
-    [['D', 'var(--outer)'], ['W', 'var(--width)'], ['C', 'var(--depth)']].forEach(function (a) {
-      var b = m[a[0]];
-      if (!b || (a[0] === 'C' && !card.getAttribute('data-c'))) return;
-      var r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      r.setAttribute('x', b[0]); r.setAttribute('y', b[1]); r.setAttribute('width', b[2]); r.setAttribute('height', b[3]);
-      r.setAttribute('rx', 6); r.style.fill = a[1]; r.style.stroke = a[1];
-      svg.appendChild(r);
+  // 選んだカードの寸法を、図（ピストン用・ロッド用）の記号の場所に色付きの枠で示し、図の下に数値を出す（card が null なら消す）
+  // カードの data-vals：[{ k: 図のキー, l: 表示名, v: 値（公差付き） }, ...]
+  function markFig(card) {
+    var vals = card ? JSON.parse(card.getAttribute('data-vals') || '[]') : [];
+    var p = card ? card.getAttribute('data-product').toLowerCase() : '';
+    [['pkMarksPiston', '-piston', 'pkPiston'], ['pkMarksRod', '-rod', 'pkRod']].forEach(function (a) {
+      var svg = $(a[0]), m = FIG_MARKS[p + a[1]];
+      svg.innerHTML = '';
+      if (!m || $(a[2]).hidden) return;
+      svg.setAttribute('viewBox', '0 0 ' + m.w + ' ' + m.h);
+      vals.forEach(function (x) {
+        var b = m[x.k];
+        if (!b) return;
+        var r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        r.setAttribute('x', b[0]); r.setAttribute('y', b[1]); r.setAttribute('width', b[2]); r.setAttribute('height', b[3]);
+        r.setAttribute('rx', 6); r.style.fill = MARK_COLOR[x.k]; r.style.stroke = MARK_COLOR[x.k];
+        svg.appendChild(r);
+      });
     });
-    $('pkMarkVals').innerHTML = '<span class="cD">■ D = ' + esc(card.getAttribute('data-d')) + '</span>'
-      + '<span class="cW">■ ' + (W_LABEL[card.getAttribute('data-product')] || '溝幅') + ' = ' + esc(card.getAttribute('data-w')) + '</span>'
-      + (card.getAttribute('data-c') ? '<span class="cC">■ ' + C_LABEL[card.getAttribute('data-product')] + ' = ' + esc(card.getAttribute('data-c')) + '</span>' : '');
+    $('pkMarkVals').hidden = !vals.length;
+    $('pkMarkVals').innerHTML = vals.map(function (x) {
+      return '<span class="' + MARK_CLASS[x.k] + '">■ ' + esc(x.l) + ' = ' + esc(x.v) + '</span>';
+    }).join('');
   }
   $('results').addEventListener('click', function (e) {
     var card = e.target.closest('.ring.pk');
@@ -230,7 +250,7 @@
     [].forEach.call(document.querySelectorAll('.ring.sel'), function (el) { el.classList.remove('sel'); });
     card.classList.add('sel');
     setPackingFig(card.getAttribute('data-product'));
-    markDust($('kind').value === 'dust' ? card : null);
+    markFig(card);
     $('figCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
@@ -244,7 +264,7 @@
     $('outerRow').hidden = dust; $('widthRow').hidden = dust;   // ダストシールはロッド径だけで検索
     document.querySelector('#figCard svg').style.display = pk || dust ? 'none' : '';
     if (pk) setPackingFig('SKY'); else if (dust) setPackingFig('SDR');
-    markDust(null);
+    markFig(null);
     $('pkFig').hidden = !(pk || dust);
     $('msg').className = ''; $('msg').textContent = '寸法を入力して［検索］を押してください。'; $('results').innerHTML = '';
   });
@@ -311,10 +331,9 @@
             var n = dr.Candidates.filter(function (x) { return x.Product === r.Product; }).length;
             dh += '<h2>' + esc(r.Product) + '（' + n + ' 件）' + mkTag(r.Product) + '</h2>'; dprev = r.Product; di = 0;
           }
-          dh += '<div class="ring pk ' + mkClass(r.Product) + (di === 0 ? ' top' : ' alt') + '" data-product="' + esc(r.Product) + '"'
-            + ' data-d="' + esc(r.D2 + (r.TolOuter && r.TolOuter !== '—' ? '（' + r.TolOuter + '）' : '')) + '"'
-            + ' data-w="' + esc(r.Width + (r.TolWidth && r.TolWidth !== '—' ? '（' + r.TolWidth + '）' : '')) + '"'
-            + (r.DiaD1 && C_LABEL[r.Product] ? ' data-c="' + esc(r.DiaD1 + (r.TolD1 && r.TolD1 !== '—' ? '（' + r.TolD1 + '）' : '')) + '"' : '') + '>'
+          var dv = [{ k: 'D', l: 'D', v: withTol(r.D2, r.TolOuter) }, { k: 'W', l: W_LABEL[r.Product] || '溝幅', v: withTol(r.Width, r.TolWidth) }];
+          if (r.DiaD1 && C_LABEL[r.Product]) dv.push({ k: 'C', l: C_LABEL[r.Product], v: withTol(r.DiaD1, r.TolD1) });
+          dh += '<div class="ring pk ' + mkClass(r.Product) + (di === 0 ? ' top' : ' alt') + '" data-product="' + esc(r.Product) + '" data-vals="' + esc(JSON.stringify(dv)) + '">'
             + '<div class="name">' + esc(r.Code) + '<small>ロッド用</small></div><dl>'
             + '<dt class="cD">D</dt><dd><b>' + r.D2 + '</b>' + tolHtml(r.TolOuter) + '</dd>'
             + '<dt class="cW">' + (W_LABEL[r.Product] || '溝幅') + '</dt><dd><b>' + r.Width + '</b>' + tolHtml(r.TolWidth) + '</dd>'
@@ -326,7 +345,7 @@
         });
         $('results').innerHTML = dh;
         if (dr.Candidates.length) setPackingFig(dr.Candidates[0].Product);
-        markDust(document.querySelector('#results .ring.pk'));   // 最初は先頭の結果の寸法を図に示す
+        markFig(document.querySelector('#results .ring.pk'));   // 最初は先頭の結果の寸法を図に示す
         if (dh) $('msg').scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
       }
@@ -347,11 +366,16 @@
             var n = pr.Candidates.filter(function (x) { return x.Product === r.Product; }).length;
             ph += '<h2>' + esc(r.Product) + 'パッキン（' + n + ' 件）' + mkTag(r.Product) + '</h2>'; prev = r.Product; idx = 0;
           }
-          ph += '<div class="ring pk ' + mkClass(r.Product) + (idx === 0 ? ' top' : ' alt') + '" data-product="' + esc(r.Product) + '">'
+          // 溝幅の記号は図に合わせる（UPH の図は HA・HB）
+          var wk = $('br').value === 'None' ? 'GA' : 'GB', wl = r.Product === 'UPH' ? wk.replace('G', 'H') : wk;
+          var pv = [{ k: 'd', l: 'd', v: withTol(r.D1, r.TolInner) }];
+          if (r.DiaD1) pv.push({ k: 'D1', l: 'D1', v: withTol(r.DiaD1, r.TolD1) });
+          pv.push({ k: wk, l: wl, v: withTol(r.Width, r.TolWidth) });
+          ph += '<div class="ring pk ' + mkClass(r.Product) + (idx === 0 ? ' top' : ' alt') + '" data-product="' + esc(r.Product) + '" data-vals="' + esc(JSON.stringify(pv)) + '">'
             + '<div class="name">' + esc(r.Code) + '<small>' + useName[r.Use] + '</small></div><dl>'
-            + '<dt>溝内径 d</dt><dd><b>' + r.D1 + '</b>' + tolHtml(r.TolInner) + '</dd>'
-            + '<dt>D1</dt><dd>' + (r.DiaD1 ? '<b>' + r.DiaD1 + '</b>' + tolHtml(r.TolD1) : '—') + '</dd>'
-            + '<dt>' + ($('br').value === 'None' ? 'GA' : 'GB') + '</dt><dd><b>' + r.Width + '</b>' + tolHtml(r.TolWidth) + '</dd>'
+            + '<dt class="cd">溝内径 d</dt><dd><b>' + r.D1 + '</b>' + tolHtml(r.TolInner) + '</dd>'
+            + '<dt class="cC">D1</dt><dd>' + (r.DiaD1 ? '<b>' + r.DiaD1 + '</b>' + tolHtml(r.TolD1) : '—') + '</dd>'
+            + '<dt class="cW">' + wl + '</dt><dd><b>' + r.Width + '</b>' + tolHtml(r.TolWidth) + '</dd>'
             + (r.Backup ? '<dt>バックアップ</dt><dd>' + esc(r.Backup) + '</dd>' : '')
             + '<dt>メーカー</dt><dd>' + mkTag(r.Product) + '</dd>'
             + '</dl></div>';
@@ -359,6 +383,7 @@
         });
         $('results').innerHTML = ph;
         if (pr.Candidates.length) setPackingFig(pr.Candidates[0].Product);
+        markFig(document.querySelector('#results .ring.pk'));   // 最初は先頭の結果の寸法を図に示す
         if (ph) $('msg').scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
       }
@@ -384,9 +409,9 @@
         list.forEach(function (r, i) {
           html += '<div class="ring' + (i === 0 ? ' top' : i % 2 ? ' alt' : '') + '">'
             + '<div class="name">' + esc(r.Name) + '<small>線径 d2 ' + r.D2.toFixed(1) + ' / 内径 d1 ' + r.D1.toFixed(1) + '</small></div><dl>'
-            + '<dt>溝内径 d</dt><dd>' + fmt(r.StdInner) + '（' + esc(r.TolInner) + '）</dd>'
-            + '<dt>溝外径 D</dt><dd>' + fmt(r.StdOuter) + '（' + esc(r.TolOuter) + '）</dd>'
-            + '<dt>溝幅 G</dt><dd>' + fmt(r.StdWidth) + '（' + esc(r.TolWidth) + '）</dd>'
+            + '<dt class="cd">溝内径 d</dt><dd>' + fmt(r.StdInner) + '（' + esc(r.TolInner) + '）</dd>'
+            + '<dt class="cD">溝外径 D</dt><dd>' + fmt(r.StdOuter) + '（' + esc(r.TolOuter) + '）</dd>'
+            + '<dt class="cW">溝幅 G</dt><dd>' + fmt(r.StdWidth) + '（' + esc(r.TolWidth) + '）</dd>'
             + '</dl></div>';
         });
       });

@@ -183,24 +183,31 @@ $fig.Add_Paint({
             if ($h -gt 168) { $h = 168; $w = [int]($img.Width * $h / $img.Height) }
             $ox = 4 + [int](($fig.ClientSize.Width - 8 - $w) / 2); $oy = 24 + [int]((168 - $h) / 2)
             $g.DrawImage($img, $ox, $oy, $w, $h)
-            # ダストシール：選んだ行の D・溝幅・C を図の寸法記号の場所に色付きの枠で示し、見出しの右に数値を出す
-            $m = $script:dustMark
-            if ($cmbKind.SelectedIndex -eq 2 -and $m -and $m.Product -eq $p -and $DustMarks.ContainsKey($p)) {
+            # 選んだ行の寸法を図の記号の場所に色付きの枠で示し、図の右下に数値を出す（Uパッキン・ダストシール）
+            $m = $script:figMark
+            $key = "$($p.ToLower())-" + $(if ($useRod) { 'rod' } else { 'piston' })
+            if ($m -and $m.Product -eq $p -and $FigMarks.ContainsKey($key)) {
                 $k = $w / $img.Width
-                $tx = 6 + $g.MeasureString($title, (New-Object System.Drawing.Font('Yu Gothic UI', 9, [System.Drawing.FontStyle]::Bold))).Width
-                foreach ($a in @(@('D', 'D', $colOuter), @('W', $m.WLabel, $colWidth), @('C', $m.CLabel, $colDepth))) {
-                    $b = $DustMarks[$p][$a[0]]; $v = $m[$a[0]]
-                    if (-not $b -or -not $v) { continue }
-                    $rx = $ox + $b[0] * $k; $ry = $oy + $b[1] * $k; $rw = $b[2] * $k; $rh = $b[3] * $k
-                    $fill = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(50, $a[2]))
-                    $pen = New-Object System.Drawing.Pen $a[2], 2
-                    $g.FillRectangle($fill, [single]$rx, [single]$ry, [single]$rw, [single]$rh)
-                    $g.DrawRectangle($pen, [single]$rx, [single]$ry, [single]$rw, [single]$rh)
-                    $fill.Dispose(); $pen.Dispose()
-                    $t = "$($a[1])=$v"
-                    Draw-Text $g $t $a[2] $tx 2 $true
-                    $tx += $g.MeasureString($t, (New-Object System.Drawing.Font('Yu Gothic UI', 9, [System.Drawing.FontStyle]::Bold))).Width + 2
+                $bf = New-Object System.Drawing.Font('Yu Gothic UI', 9, [System.Drawing.FontStyle]::Bold)
+                $tx = $fig.ClientSize.Width - 6
+                $vals = @($m.Vals); [array]::Reverse($vals)   # 右から詰めて書く
+                foreach ($x in $vals) {
+                    $c = $MarkColors[$x.k]
+                    $b = $FigMarks[$key][$x.k]
+                    if ($b) {
+                        $rx = $ox + $b[0] * $k; $ry = $oy + $b[1] * $k; $rw = $b[2] * $k; $rh = $b[3] * $k
+                        $fill = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(50, $c))
+                        $pen = New-Object System.Drawing.Pen $c, 2
+                        $g.FillRectangle($fill, [single]$rx, [single]$ry, [single]$rw, [single]$rh)
+                        $g.DrawRectangle($pen, [single]$rx, [single]$ry, [single]$rw, [single]$rh)
+                        $fill.Dispose(); $pen.Dispose()
+                    }
+                    $t = "$($x.l)=$($x.v)"
+                    $tx -= $g.MeasureString($t, $bf).Width
+                    Draw-Text $g $t $c $tx 194 $true
+                    $tx -= 2
                 }
+                $bf.Dispose()
             }
         }
         $src = if ($ValquaProducts -contains $p) { "出典：バルカー 油圧用パッキン カタログ $($p)シリーズ" }
@@ -310,14 +317,28 @@ foreach ($p in @('SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH') + $DustProducts) {
 }
 $script:figProduct = 'SKY'
 $script:figRod = $false
-# ダストシールの図で D・溝幅・C の寸法記号がある場所（画像のピクセル座標 x, y, 幅, 高さ。index.html の DUST_MARKS と同じ）
-$DustMarks = @{
-    'SDR' = @{ D = @(128, 240, 48, 110); W = @(214, 66, 88, 32); C = @(324, 238, 34, 110) }
-    'DHS' = @{ D = @(264, 170, 40, 130); W = @(408, 48, 32, 26); C = @(494, 168, 32, 95) }
-    'LBH' = @{ D = @(552, 385, 36, 88);  W = @(772, 22, 92, 32); C = @(904, 378, 34, 108) }
-    'DKI' = @{ D = @(562, 360, 38, 105); W = @(812, 14, 42, 32) }
+# 寸法指示図で各寸法の記号がある場所（画像のピクセル座標 x, y, 幅, 高さ。キーは画像名。index.html の FIG_MARKS と同じ）
+# ダストシール：D・W（溝幅）・C ／ Uパッキン：d・D1・GA・GB（UPH の図では HA・HB）
+$FigMarks = @{
+    'sdr-rod'    = @{ D = @(128, 240, 48, 110); W = @(214, 66, 88, 32); C = @(324, 238, 34, 110) }
+    'dhs-rod'    = @{ D = @(264, 170, 40, 130); W = @(408, 48, 32, 26); C = @(494, 168, 32, 95) }
+    'lbh-rod'    = @{ D = @(552, 385, 36, 88);  W = @(772, 22, 92, 32); C = @(904, 378, 34, 108) }
+    'dki-rod'    = @{ D = @(562, 360, 38, 105); W = @(812, 14, 42, 32) }
+    'sky-piston' = @{ d = @(452, 190, 36, 80); D1 = @(302, 178, 32, 115); GA = @(380, 170, 70, 28); GB = @(570, 170, 70, 28) }
+    'sky-rod'    = @{ d = @(272, 205, 32, 75); GA = @(172, 48, 80, 30); GB = @(176, 396, 80, 30) }
+    'ky-piston'  = @{ d = @(302, 135, 26, 70); D1 = @(192, 120, 26, 95); GA = @(242, 118, 58, 22); GB = @(377, 118, 58, 22) }
+    'ky-rod'     = @{ d = @(322, 210, 32, 80); GA = @(172, 62, 82, 30); GB = @(172, 393, 82, 30) }
+    'uhp-piston' = @{ d = @(420, 188, 30, 70); D1 = @(274, 175, 30, 85); GA = @(350, 178, 34, 26); GB = @(508, 178, 40, 26) }
+    'mlp-piston' = @{ d = @(418, 182, 32, 70); D1 = @(270, 172, 30, 90); GA = @(344, 180, 38, 28); GB = @(500, 178, 46, 28) }
+    'mlr-rod'    = @{ d = @(418, 118, 32, 72); GA = @(356, 8, 44, 28); GB = @(355, 294, 46, 30) }
+    'uph-piston' = @{ d = @(442, 268, 30, 68); D1 = @(768, 243, 32, 90); GA = @(434, 502, 66, 26); GB = @(632, 502, 74, 26) }
+    'uph-rod'    = @{ d = @(378, 298, 32, 100); GA = @(606, 592, 78, 28); GB = @(598, 48, 84, 28) }
 }
-$script:dustMark = $null   # 選んだ行の @{ Product; D; W; C; CLabel }
+# d と D を区別するため大文字小文字を区別する表にする（@{} は区別しない）
+$MarkColors = New-Object System.Collections.Hashtable ([StringComparer]::Ordinal)
+$MarkColors['d'] = $colInner; $MarkColors['D'] = $colOuter; $MarkColors['D1'] = $colDepth; $MarkColors['C'] = $colDepth
+$MarkColors['W'] = $colWidth; $MarkColors['GA'] = $colWidth; $MarkColors['GB'] = $colWidth
+$script:figMark = $null   # 選んだ行の @{ Product; Vals = @( @{ k = 図のキー; l = 表示名; v = 値 }, ... ) }
 $fig.Add_Click({
     if ($cmbKind.SelectedIndex -ge 1) { $script:figRod = -not $script:figRod; $fig.Invalidate() }
 })
@@ -336,7 +357,9 @@ $list.Add_DrawColumnHeader({
     $e = $_
     $e.DrawBackground()
     $t = $e.Header.Text
-    $c = if ($cmbKind.SelectedIndex -ne 2) { $null } elseif ($t -like 'D（*') { $colOuter } elseif ($t -like 'G・H*') { $colWidth } elseif ($t -like 'C・S*') { $colDepth } else { $null }
+    # 列名の頭の記号で色を決める（Oリング：溝内径 d・溝外径 D・溝幅 G／Uパッキン：d・D1・GA/GB／ダストシール：D・G/H・C/S）
+    $c = if ($t -clike 'd（*' -or $t -like '溝内径*') { $colInner } elseif ($t -clike 'D（*' -or $t -like '溝外径*') { $colOuter }
+         elseif ($t -like 'G・H*' -or $t -clike 'G[AB]（*' -or $t -like '溝幅*') { $colWidth } elseif ($t -like 'C・S*' -or $t -clike 'D1（*') { $colDepth } else { $null }
     $f = if ($c) { New-Object System.Drawing.Font('Yu Gothic UI', 9, [System.Drawing.FontStyle]::Bold) } else { $e.Font }
     $r = New-Object System.Drawing.Rectangle ($e.Bounds.X + 4), $e.Bounds.Y, ($e.Bounds.Width - 4), $e.Bounds.Height
     [System.Windows.Forms.TextRenderer]::DrawText($e.Graphics, $t, $f, $r, $(if ($c) { $c } else { [System.Drawing.SystemColors]::ControlText }),
@@ -376,7 +399,7 @@ $form.Controls.Add($list)
 $list.Add_SelectedIndexChanged({
     if ($cmbKind.SelectedIndex -lt 1 -or $list.SelectedItems.Count -eq 0) { return }
     $grp = $list.SelectedItems[0].Group
-    if ($cmbKind.SelectedIndex -eq 2) { $script:dustMark = $list.SelectedItems[0].Tag }
+    $script:figMark = $list.SelectedItems[0].Tag
     if ($grp -and $figImages.ContainsKey($grp.Name)) { $script:figProduct = $grp.Name; $fig.Invalidate() }
 })
 
@@ -388,6 +411,7 @@ $cmbKind.Add_SelectedIndexChanged({
     $lblInner.Text = if ($cmbKind.SelectedIndex -eq 2) { '● d ロッド径 [mm]' } else { '● d 溝の内径 [mm]' }
     foreach ($c in @($lblOuter, $txtOuter, $lblWidth, $txtWidth)) { $c.Visible = $cmbKind.SelectedIndex -ne 2 }
     $script:figProduct = if ($cmbKind.SelectedIndex -eq 1) { 'SKY' } else { '' }
+    $script:figMark = $null
     $fig.Cursor = if ($cmbKind.SelectedIndex -ge 1) { 'Hand' } else { 'Default' }
     $msg.Text = ''
     $fig.Invalidate()
@@ -438,9 +462,9 @@ $btn.Add_Click({
                 foreach ($v in @("$($r.D2)（$($r.TolOuter)）", "$wl $($r.Width)（$($r.TolWidth)）", $vC, (Get-Maker $r.Product))) {
                     [void]$item.SubItems.Add([string]$v)
                 }
-                $item.Tag = @{ Product = $r.Product; D = "$($r.D2)"; W = "$($r.Width)"
-                               C = $(if ($r.DiaD1 -and $DustMarks[$r.Product].C) { "$($r.DiaD1)" } else { '' })
-                               CLabel = $(if ($r.Product -eq 'LBH') { 'S' } else { 'C' }); WLabel = $wl }
+                $tv = @(@{ k = 'D'; l = 'D'; v = "$($r.D2)" }, @{ k = 'W'; l = $wl; v = "$($r.Width)" })
+                if ($r.DiaD1 -and $r.Product -ne 'DKI') { $tv += @{ k = 'C'; l = $(if ($r.Product -eq 'LBH') { 'S' } else { 'C' }); v = "$($r.DiaD1)" } }
+                $item.Tag = @{ Product = $r.Product; Vals = $tv }
                 $item.BackColor = if ($i -eq 0) { RGB '#C8E6C9' } else { RGB '#E3F2FD' }
                 if ($i -eq 0) { $item.Font = New-Object System.Drawing.Font('Yu Gothic UI', 10, [System.Drawing.FontStyle]::Bold) }
                 [void]$list.Items.Add($item)
@@ -453,7 +477,7 @@ $btn.Add_Click({
             }
             $msg.Text = $lines -join "`r`n"
             $script:figProduct = if ($result.Candidates.Count -gt 0) { $result.Candidates[0].Product } else { '' }
-            $script:dustMark = if ($list.Items.Count -gt 0) { $list.Items[0].Tag } else { $null }   # 最初は先頭の結果を図に示す
+            $script:figMark = if ($list.Items.Count -gt 0) { $list.Items[0].Tag } else { $null }   # 最初は先頭の結果を図に示す
             $fig.Invalidate()
             return
         }
@@ -463,6 +487,7 @@ $btn.Add_Click({
             $result = Find-Packing -GrooveInner $inner -GrooveOuter $outer -GrooveWidth $width -Table $ptable -BackupRing $br
             # 溝幅の列名：バックアップリングなし＝GA、あり（片側・両側）＝GB
             $list.Columns[4].Text = if ($br -eq 'None') { 'GA（公差）' } else { 'GB（公差）' }
+            $wk = if ($br -eq 'None') { 'GA' } else { 'GB' }
             $useName = @{ Piston = 'ピストン用'; Rod = 'ロッド用'; Both = '両用' }
             $list.Groups.Clear()
             $groups = @{}
@@ -482,6 +507,11 @@ $btn.Add_Click({
                 foreach ($v in @($useName[$r.Use], $vd, $vD1, $vW, $(if ($r.Backup) { $r.Backup } else { '—' }), (Get-Maker $r.Product))) {
                     [void]$item.SubItems.Add([string]$v)
                 }
+                # 図に示す寸法（溝幅の記号は UPH の図では HA・HB）
+                $tv = @(@{ k = 'd'; l = 'd'; v = "$($r.D1)" })
+                if ($r.DiaD1) { $tv += @{ k = 'D1'; l = 'D1'; v = "$($r.DiaD1)" } }
+                $tv += @{ k = $wk; l = $(if ($r.Product -eq 'UPH') { $wk -replace 'G', 'H' } else { $wk }); v = "$($r.Width)" }
+                $item.Tag = @{ Product = $r.Product; Vals = $tv }
                 $item.BackColor = if ($i -eq 0) { RGB '#C8E6C9' } else { RGB '#E3F2FD' }
                 if ($i -eq 0) { $item.Font = New-Object System.Drawing.Font('Yu Gothic UI', 10, [System.Drawing.FontStyle]::Bold) }
                 [void]$list.Items.Add($item)
@@ -496,7 +526,9 @@ $btn.Add_Click({
             $msg.Text = $lines -join "`r`n"
             # 図は検索結果の先頭の製品にする
             if ($result.Candidates.Count -gt 0 -and $figImages.ContainsKey($result.Candidates[0].Product)) {
-                $script:figProduct = $result.Candidates[0].Product; $fig.Invalidate()
+                $script:figProduct = $result.Candidates[0].Product
+                $script:figMark = $list.Items[0].Tag   # 最初は先頭の結果を図に示す
+                $fig.Invalidate()
             }
             return
         }
