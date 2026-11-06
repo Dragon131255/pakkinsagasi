@@ -64,28 +64,37 @@ function New-Input($x, $y) {
     $t
 }
 
-New-Label '種類' 20 68
+# 呼び番号で探す（いちばん上。入れたときは種類・寸法を使わず、全種類から探す）
+New-Label '検索' 20 68
+$txtName = New-Object System.Windows.Forms.TextBox
+$txtName.Location = New-Object System.Drawing.Point(190, 65)
+$txtName.Width = 130
+$form.Controls.Add($txtName)
+$tip = New-Object System.Windows.Forms.ToolTip
+$tip.SetToolTip($txtName, '一部だけでも探せます（例 P20、SKY40）。種類を選ばなくても探せます。入れたときは寸法を使いません')
+
+New-Label '種類' 20 100
 $cmbKind = New-Object System.Windows.Forms.ComboBox
-$cmbKind.Location = New-Object System.Drawing.Point(190, 65)
+$cmbKind.Location = New-Object System.Drawing.Point(190, 97)
 $cmbKind.Width = 130
 $cmbKind.DropDownStyle = 'DropDownList'
 [void]$cmbKind.Items.AddRange(@('Oリング', 'Uパッキン', 'ダストシール'))
 $cmbKind.SelectedIndex = 0
 $form.Controls.Add($cmbKind)
 
-New-Label '● d 溝の内径 [mm]' 20 100 $colInner
+New-Label '● d 溝の内径 [mm]' 20 132 $colInner
 $lblInner = $form.Controls[$form.Controls.Count - 1]   # ダストシールのときは「ロッド径」にする
-$txtInner = New-Input 190 97
-New-Label '● D 溝の外径 [mm]' 20 132 $colOuter
+$txtInner = New-Input 190 129
+New-Label '● D 溝の外径 [mm]' 20 164 $colOuter
 $lblOuter = $form.Controls[$form.Controls.Count - 1]   # ダストシールのときは D・G を隠す（ロッド径だけで検索）
-$txtOuter = New-Input 190 129
-New-Label '● G 溝幅 [mm]' 20 164 $colWidth
+$txtOuter = New-Input 190 161
+New-Label '● G 溝幅 [mm]' 20 196 $colWidth
 $lblWidth = $form.Controls[$form.Controls.Count - 1]
-$txtWidth = New-Input 190 161
-New-Label '用途' 20 196
+$txtWidth = New-Input 190 193
+New-Label '用途' 20 228
 
 $cmbUse = New-Object System.Windows.Forms.ComboBox
-$cmbUse.Location = New-Object System.Drawing.Point(190, 193)
+$cmbUse.Location = New-Object System.Drawing.Point(190, 225)
 $cmbUse.Width = 100
 $cmbUse.DropDownStyle = 'DropDownList'
 [void]$cmbUse.Items.AddRange(@('運動用', '固定用'))
@@ -93,27 +102,18 @@ $cmbUse.SelectedIndex = 1
 $form.Controls.Add($cmbUse)
 
 $colBR = RGB '#37474F'   # バックアップリング
-New-Label '● バックアップリング' 20 228 $colBR
+New-Label '● バックアップリング' 20 260 $colBR
 $cmbBR = New-Object System.Windows.Forms.ComboBox
-$cmbBR.Location = New-Object System.Drawing.Point(190, 225)
+$cmbBR.Location = New-Object System.Drawing.Point(190, 257)
 $cmbBR.Width = 100
 $cmbBR.DropDownStyle = 'DropDownList'
 [void]$cmbBR.Items.AddRange(@('なし', '片側', '両側'))
 $cmbBR.SelectedIndex = 0
 $form.Controls.Add($cmbBR)
 
-# 呼び番号で探す（入れたときは寸法を使わない）
-New-Label '検索' 150 269
-$txtName = New-Object System.Windows.Forms.TextBox
-$txtName.Location = New-Object System.Drawing.Point(190, 266)
-$txtName.Width = 130
-$form.Controls.Add($txtName)
-$tip = New-Object System.Windows.Forms.ToolTip
-$tip.SetToolTip($txtName, '一部だけでも探せます（例 P20、SKY40）。入れたときは寸法を使いません')
-
 $btn = New-Object System.Windows.Forms.Button
 $btn.Text = '検索'
-$btn.Location = New-Object System.Drawing.Point(20, 262)
+$btn.Location = New-Object System.Drawing.Point(20, 294)
 $btn.Size = New-Object System.Drawing.Size(100, 32)
 $btn.FlatStyle = 'Flat'
 $btn.FlatAppearance.BorderSize = 0
@@ -385,8 +385,8 @@ $fig.Add_Click({
 })
 
 $list = New-Object System.Windows.Forms.ListView
-$list.Location = New-Object System.Drawing.Point(20, 305)
-$list.Size = New-Object System.Drawing.Size(905, 300)
+$list.Location = New-Object System.Drawing.Point(20, 337)
+$list.Size = New-Object System.Drawing.Size(905, 268)
 $list.View = 'Details'
 $list.FullRowSelect = $true
 $list.GridLines = $true
@@ -491,7 +491,19 @@ $btn.Add_Click({
     $msg.Text = ''
     try {
         $name = $txtName.Text.Trim()   # 呼び番号を入れたときは寸法を読まない
-        if ($name) { $inner = $null; $outer = $null; $width = $null } else {
+        $script:otherNote = $null
+        if ($name) {
+            $inner = $null; $outer = $null; $width = $null
+            # 種類を選ばなくても探す：今の種類に結果がなければ、結果のある最初の種類に切り替える
+            $all = Find-AllByName -Name $name -ORingTable $table -PackingTable $ptable -DustTable $dtable -BackupRing (@("None", "One", "Both")[$cmbBR.SelectedIndex])
+            $tot = @($all.ORing.Total, $all.Packing.Total, $all.Dust.Total)
+            if ($tot[$cmbKind.SelectedIndex] -eq 0) {
+                for ($k = 0; $k -lt 3; $k++) { if ($tot[$k] -gt 0) { $cmbKind.SelectedIndex = $k; break } }
+            }
+            $kindNames = @("Oリング", "Uパッキン", "ダストシール")
+            $others = @(for ($k = 0; $k -lt 3; $k++) { if ($k -ne $cmbKind.SelectedIndex -and $tot[$k] -gt 0) { "$($kindNames[$k]) $($tot[$k]) 件" } })
+            if ($others.Count) { $script:otherNote = "ほかの種類にもあります：$($others -join "、")（種類を切り替えて［検索］を押すと表示）" }
+        } else {
             $inner = Read-Number $txtInner $(if ($cmbKind.SelectedIndex -eq 2) { 'ロッド径' } else { '溝の内径' })
             $outer = if ($cmbKind.SelectedIndex -eq 2) { $null } else { Read-Number $txtOuter '溝の外径' }   # ダストシールはロッド径だけ
             $width = if ($cmbKind.SelectedIndex -eq 2) { $null } else { Read-Number $txtWidth '溝幅' }
@@ -528,7 +540,7 @@ $btn.Add_Click({
                 $lines += Get-CountLine $result "（製品ごとに最大 $MaxResults 件、寸法の差が小さい順）"
                 $lines += $DustSourceNote
             }
-            $msg.Text = $lines -join "`r`n"
+            $msg.Text = (@($lines) + @($script:otherNote | Where-Object { $_ })) -join "`r`n"
             $script:figProduct = if ($result.Candidates.Count -gt 0) { $result.Candidates[0].Product } else { '' }
             $script:figMark = if ($list.Items.Count -gt 0) { $list.Items[0].Tag } else { $null }   # 最初は先頭の結果を図に示す
             $fig.Invalidate()
@@ -576,7 +588,7 @@ $btn.Add_Click({
                 $lines += Get-CountLine $result "（製品ごとに最大 $MaxResults 件、寸法の差が小さい順）"
                 $lines += '出典：GPY〜KY は阪上製作所の製品ページ、UHP・MLP・MLR はバルカーの油圧用パッキン カタログ、UPH は NOK の UPH 型 寸法表。使用条件（圧力・速度・温度）は各社のカタログで確認してください。'
             }
-            $msg.Text = $lines -join "`r`n"
+            $msg.Text = (@($lines) + @($script:otherNote | Where-Object { $_ })) -join "`r`n"
             # 図は検索結果の先頭の製品にする
             if ($result.Candidates.Count -gt 0 -and $figImages.ContainsKey($result.Candidates[0].Product)) {
                 $script:figProduct = $result.Candidates[0].Product
@@ -636,7 +648,7 @@ $btn.Add_Click({
                      else { '溝充填率が上限に近い順' }
             $lines += Get-CountLine $result "（系列ごとに最大 $MaxResults 件、$order）"
         }
-        $msg.Text = $lines -join "`r`n"
+        $msg.Text = (@($lines) + @($script:otherNote | Where-Object { $_ })) -join "`r`n"
     } catch {
         $msg.Text = $_.Exception.Message
     }

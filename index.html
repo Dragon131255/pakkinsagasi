@@ -74,10 +74,10 @@
 <header>◎ パッキン探し ─ Oリング・油圧パッキン選定</header>
 <main>
   <form class="card" id="form" novalidate>
+    <div class="row"><label for="pname">検索</label>
+      <input id="pname" autocomplete="off" autocapitalize="characters" placeholder="例 P20、SKY40（種類を選ばなくても探せます）"></div>
     <div class="row"><label for="kind">種類</label>
       <select id="kind"><option value="oring">Oリング（JIS B 2401）</option><option value="packing">Uパッキン（油圧）</option><option value="dust">ダストシール</option></select></div>
-    <div class="row"><label for="pname">検索</label>
-      <input id="pname" autocomplete="off" autocapitalize="characters" placeholder="例 P20、SKY40（一部でも可）"></div>
     <div class="row"><label for="inner"><span class="dot" style="background:var(--inner)"></span><span id="innerLabel">d 溝の内径</span> [mm]</label>
       <input id="inner" inputmode="decimal" autocomplete="off"></div>
     <div class="row" id="outerRow"><label for="outer"><span class="dot" style="background:var(--outer)"></span>D 溝の外径 [mm]</label>
@@ -88,7 +88,7 @@
       <select id="use"><option value="Dynamic">運動用</option><option value="Static" selected>固定用</option></select></div>
     <div class="row"><label for="br"><span class="dot" style="background:var(--br)"></span>バックアップリング</label>
       <select id="br"><option value="None">なし</option><option value="One">片側</option><option value="Both">両側</option></select></div>
-    <div class="actions"><button type="submit">検索</button><span class="hint">空欄の寸法は判定に使いません。呼び番号を入れたときは寸法を使いません</span></div>
+    <div class="actions"><button type="submit">検索</button><span class="hint">空欄の寸法は判定に使いません。「検索」に呼び番号を入れたときは種類・寸法を使いません</span></div>
   </form>
 
   <div class="card" id="figCard">
@@ -274,9 +274,7 @@
     if (!card) return;
     [].forEach.call(document.querySelectorAll('.ring.sel'), function (el) { el.classList.remove('sel'); });
     card.classList.add('sel');
-    if (card.classList.contains('or')) { markOring(card); $('figCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
-    setPackingFig(card.getAttribute('data-product'));
-    markFig(card);
+    showFigFor(card);
     $('figCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
@@ -340,20 +338,121 @@
     return t;
   }
 
+  // ---- 検索結果のカード（種類ごと） ----
+  function dustHtml(dr) {
+    var dh = '', dprev = null, di = 0;
+    dr.Candidates.forEach(function (r) {
+      if (r.Product !== dprev) {
+        var n = dr.Candidates.filter(function (x) { return x.Product === r.Product; }).length;
+        dh += '<h2>' + esc(r.Product) + '（' + n + ' 件）' + mkTag(r.Product) + '</h2>'; dprev = r.Product; di = 0;
+      }
+      var dv = [{ k: 'D', l: 'D', v: withTol(r.D2, r.TolOuter) }, { k: 'W', l: W_LABEL[r.Product] || '溝幅', v: withTol(r.Width, r.TolWidth) }];
+      if (r.DiaD1 && C_LABEL[r.Product]) dv.push({ k: 'C', l: C_LABEL[r.Product], v: withTol(r.DiaD1, r.TolD1) });
+      dh += '<div class="ring pk ' + mkClass(r.Product) + (di === 0 ? ' top' : ' alt') + '" data-product="' + esc(r.Product) + '" data-vals="' + esc(JSON.stringify(dv)) + '">'
+        + '<div class="name">' + esc(r.Code) + '<small>ロッド用</small></div><dl>'
+        + '<dt class="cD">D</dt><dd><b>' + r.D2 + '</b>' + tolHtml(r.TolOuter) + '</dd>'
+        + '<dt class="cW">' + (W_LABEL[r.Product] || '溝幅') + '</dt><dd><b>' + r.Width + '</b>' + tolHtml(r.TolWidth) + '</dd>'
+        + (r.DiaD1 && C_LABEL[r.Product] ? '<dt class="cC">' + C_LABEL[r.Product] + '</dt><dd><b>' + esc(r.DiaD1) + '</b>' + tolHtml(r.TolD1) + '</dd>' : '')
+        + '<dt>メーカー</dt><dd>' + mkTag(r.Product) + '</dd>'
+        + '</dl></div>';
+      di++;
+    });
+    return dh;
+  }
+  function packingHtml(pr, br) {
+    var useName = { Piston: 'ピストン用', Rod: 'ロッド用', Both: 'ピストン・ロッド両用' };
+    var ph = '', prev = null, idx = 0;
+    pr.Candidates.forEach(function (r) {
+      if (r.Product !== prev) {
+        var n = pr.Candidates.filter(function (x) { return x.Product === r.Product; }).length;
+        ph += '<h2>' + esc(r.Product) + 'パッキン（' + n + ' 件）' + mkTag(r.Product) + '</h2>'; prev = r.Product; idx = 0;
+      }
+      // 溝幅の記号は図に合わせる（UPH の図は HA・HB）
+      var wk = br === 'None' ? 'GA' : 'GB', wl = r.Product === 'UPH' ? wk.replace('G', 'H') : wk;
+      var pv = [{ k: 'd', l: 'd', v: withTol(r.D1, r.TolInner) }];
+      if (r.DiaD1) pv.push({ k: 'D1', l: 'D1', v: withTol(r.DiaD1, r.TolD1) });
+      pv.push({ k: wk, l: wl, v: withTol(r.Width, r.TolWidth) });
+      ph += '<div class="ring pk ' + mkClass(r.Product) + (idx === 0 ? ' top' : ' alt') + '" data-product="' + esc(r.Product) + '" data-vals="' + esc(JSON.stringify(pv)) + '">'
+        + '<div class="name">' + esc(r.Code) + '<small>' + useName[r.Use] + '</small></div><dl>'
+        + '<dt class="cd">溝内径 d</dt><dd><b>' + r.D1 + '</b>' + tolHtml(r.TolInner) + '</dd>'
+        + '<dt class="cC">D1</dt><dd>' + (r.DiaD1 ? '<b>' + r.DiaD1 + '</b>' + tolHtml(r.TolD1) : '—') + '</dd>'
+        + '<dt class="cW">' + wl + '</dt><dd><b>' + r.Width + '</b>' + tolHtml(r.TolWidth) + '</dd>'
+        + (r.Backup ? '<dt>バックアップ</dt><dd>' + esc(r.Backup) + '</dd>' : '')
+        + '<dt>メーカー</dt><dd>' + mkTag(r.Product) + '</dd>'
+        + '</dl></div>';
+      idx++;
+    });
+    return ph;
+  }
+  function oringHtml(res, prefix) {
+    var html = '';
+    ['P', 'G'].forEach(function (s) {
+      var list = res.Candidates.filter(function (r) { return r.Series === s; });
+      if (!list.length) return;
+      html += '<h2>' + (prefix || '') + s + '系列（' + list.length + ' 件）</h2>';
+      list.forEach(function (r, i) {
+        var ov = [{ k: 'd', l: 'd', v: withTol(fmt(r.StdInner), r.TolInner) }, { k: 'D', l: 'D', v: withTol(fmt(r.StdOuter), r.TolOuter) }, { k: 'W', l: 'G', v: withTol(fmt(r.StdWidth), r.TolWidth) }];
+        html += '<div class="ring or' + (i === 0 ? ' top' : i % 2 ? ' alt' : '') + '" data-name="' + esc(r.Name) + '" data-vals="' + esc(JSON.stringify(ov)) + '">'
+          + '<div class="name">' + esc(r.Name) + '<small>線径 d2 ' + r.D2.toFixed(1) + ' / 内径 d1 ' + r.D1.toFixed(1) + '</small></div><dl>'
+          + '<dt class="cd">溝内径 d</dt><dd>' + fmt(r.StdInner) + '（' + esc(r.TolInner) + '）</dd>'
+          + '<dt class="cD">溝外径 D</dt><dd>' + fmt(r.StdOuter) + '（' + esc(r.TolOuter) + '）</dd>'
+          + '<dt class="cW">溝幅 G</dt><dd>' + fmt(r.StdWidth) + '（' + esc(r.TolWidth) + '）</dd>'
+          + '</dl></div>';
+      });
+    });
+    return html;
+  }
+  // 図を、選んだカードの種類（Oリングの断面図／パッキンの寸法指示図）にして寸法を示す
+  function showFigFor(card) {
+    var or = !card || card.classList.contains('or');
+    document.querySelector('#figCard svg').style.display = or ? '' : 'none';
+    $('pkFig').hidden = or;
+    if (or) { $("figRing").textContent = "Oリング"; markFig(null); markOring(card); return; }
+    markOring(null);
+    setPackingFig(card.getAttribute('data-product'));
+    markFig(card);
+  }
+  // 結果を出したあと、先頭の結果を図に示す
+  function showResults(html) {
+    $('results').innerHTML = html;
+    var first = document.querySelector('#results .ring');
+    if (first) showFigFor(first); else { markFig(null); markOring(null); }
+    if (html) $('msg').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // 呼び番号で探す：種類を選ばなくても、Oリング・Uパッキン・ダストシールをまとめて探す
+  function searchByName(name) {
+    if (!table || !ptable || !dtable) throw new Error('規格表を読み込み中です。少し待ってからもう一度押してください。');
+    var br = $('br').value;
+    var all = Pakkin.findAllByName({ name: name, backupRing: br, oringTable: table, packingTable: ptable, dustTable: dtable });
+    var res = all.ORing, pr = all.Packing, dr = all.Dust;
+    var parts = [['Oリング', res], ['Uパッキン', pr], ['ダストシール', dr]];
+    var lines = ['呼び番号に「' + name + '」を含むもの（種類・寸法・用途は使いません）'];
+    if (!(res.Total + pr.Total + dr.Total)) lines.push('見つかりませんでした。');
+    else {
+      lines.push(parts.filter(function (p) { return p[1].Total; }).map(function (p) {
+        return p[0] + ' ' + p[1].Total + ' 件' + (p[1].Total > p[1].Candidates.length ? '（先頭 ' + p[1].Candidates.length + ' 件を表示）' : '');
+      }).join('、') + ' 見つかりました（一致の近い順）。');
+    }
+    $('msg').className = ''; $('msg').textContent = lines.join('\n');
+    showResults(oringHtml(res, 'Oリング ') + packingHtml(pr, br) + dustHtml(dr));
+  }
+
   $('form').addEventListener('submit', function (e) {
     e.preventDefault();
     document.activeElement && document.activeElement.blur();
     try {
+      var name = $('pname').value.trim();
+      if (name) { searchByName(name); return; }
       if (!table) throw new Error('規格表を読み込み中です。少し待ってからもう一度押してください。');
-      var name = $('pname').value.trim();   // 呼び番号を入れたときは寸法を読まない
       var isDust = $('kind').value === 'dust';
-      var inner = name ? null : readNumber('inner', isDust ? 'ロッド径' : '溝の内径');
-      var outer = name || isDust ? null : readNumber('outer', '溝の外径');
-      var width = name || isDust ? null : readNumber('width', '溝幅');
+      var inner = readNumber('inner', isDust ? 'ロッド径' : '溝の内径');
+      var outer = isDust ? null : readNumber('outer', '溝の外径');
+      var width = isDust ? null : readNumber('width', '溝幅');
 
-      if ($('kind').value === 'dust') {
+      if (isDust) {
         if (!dtable) throw new Error('サイズ表を読み込み中です。少し待ってからもう一度押してください。');
-        var dr = Pakkin.findPacking({ inner: inner, outer: outer, width: width, backupRing: 'None', table: dtable, products: Pakkin.DustProducts, label: 'ダストシール', name: name });
+        var dr = Pakkin.findPacking({ inner: inner, outer: outer, width: width, backupRing: 'None', table: dtable, products: Pakkin.DustProducts, label: 'ダストシール' });
         var dl = ['判定条件：' + dr.Notes.join(' / ')];
         if (dr.Candidates.length === 0) dl = dl.concat(dr.Reasons);
         else {
@@ -361,33 +460,12 @@
           dl.push('出典：SDR は阪上製作所の製品ページ、DHS はバルカーの油圧用パッキン カタログ、LBH・DKI は NOK の寸法表。使用条件は各社のカタログで確認してください。');
         }
         $('msg').className = ''; $('msg').textContent = dl.join('\n');
-        var dh = '', dprev = null, di = 0;
-        dr.Candidates.forEach(function (r) {
-          if (r.Product !== dprev) {
-            var n = dr.Candidates.filter(function (x) { return x.Product === r.Product; }).length;
-            dh += '<h2>' + esc(r.Product) + '（' + n + ' 件）' + mkTag(r.Product) + '</h2>'; dprev = r.Product; di = 0;
-          }
-          var dv = [{ k: 'D', l: 'D', v: withTol(r.D2, r.TolOuter) }, { k: 'W', l: W_LABEL[r.Product] || '溝幅', v: withTol(r.Width, r.TolWidth) }];
-          if (r.DiaD1 && C_LABEL[r.Product]) dv.push({ k: 'C', l: C_LABEL[r.Product], v: withTol(r.DiaD1, r.TolD1) });
-          dh += '<div class="ring pk ' + mkClass(r.Product) + (di === 0 ? ' top' : ' alt') + '" data-product="' + esc(r.Product) + '" data-vals="' + esc(JSON.stringify(dv)) + '">'
-            + '<div class="name">' + esc(r.Code) + '<small>ロッド用</small></div><dl>'
-            + '<dt class="cD">D</dt><dd><b>' + r.D2 + '</b>' + tolHtml(r.TolOuter) + '</dd>'
-            + '<dt class="cW">' + (W_LABEL[r.Product] || '溝幅') + '</dt><dd><b>' + r.Width + '</b>' + tolHtml(r.TolWidth) + '</dd>'
-            + (r.DiaD1 && C_LABEL[r.Product] ? '<dt class="cC">' + C_LABEL[r.Product] + '</dt><dd><b>' + esc(r.DiaD1) + '</b>' + tolHtml(r.TolD1) + '</dd>' : '')
-            + ''
-            + '<dt>メーカー</dt><dd>' + mkTag(r.Product) + '</dd>'
-            + '</dl></div>';
-          di++;
-        });
-        $('results').innerHTML = dh;
-        if (dr.Candidates.length) setPackingFig(dr.Candidates[0].Product);
-        markFig(document.querySelector('#results .ring.pk'));   // 最初は先頭の結果の寸法を図に示す
-        if (dh) $('msg').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showResults(dustHtml(dr));
         return;
       }
       if ($('kind').value === 'packing') {
         if (!ptable) throw new Error('サイズ表を読み込み中です。少し待ってからもう一度押してください。');
-        var pr = Pakkin.findPacking({ inner: inner, outer: outer, width: width, backupRing: $('br').value, table: ptable, name: name });
+        var pr = Pakkin.findPacking({ inner: inner, outer: outer, width: width, backupRing: $('br').value, table: ptable });
         var pl = ['判定条件：' + pr.Notes.join(' / ')];
         if (pr.Candidates.length === 0) pl = pl.concat(pr.Reasons);
         else {
@@ -395,35 +473,10 @@
           pl.push('出典：GPY〜KY は阪上製作所の製品ページ、UHP・MLP・MLR はバルカーの油圧用パッキン カタログ、UPH は NOK の UPH 型 寸法表。使用条件（圧力・速度・温度）は各社のカタログで確認してください。');
         }
         $('msg').className = ''; $('msg').textContent = pl.join('\n');
-        var useName = { Piston: 'ピストン用', Rod: 'ロッド用', Both: 'ピストン・ロッド両用' };
-        var ph = '', prev = null, idx = 0;
-        pr.Candidates.forEach(function (r) {
-          if (r.Product !== prev) {
-            var n = pr.Candidates.filter(function (x) { return x.Product === r.Product; }).length;
-            ph += '<h2>' + esc(r.Product) + 'パッキン（' + n + ' 件）' + mkTag(r.Product) + '</h2>'; prev = r.Product; idx = 0;
-          }
-          // 溝幅の記号は図に合わせる（UPH の図は HA・HB）
-          var wk = $('br').value === 'None' ? 'GA' : 'GB', wl = r.Product === 'UPH' ? wk.replace('G', 'H') : wk;
-          var pv = [{ k: 'd', l: 'd', v: withTol(r.D1, r.TolInner) }];
-          if (r.DiaD1) pv.push({ k: 'D1', l: 'D1', v: withTol(r.DiaD1, r.TolD1) });
-          pv.push({ k: wk, l: wl, v: withTol(r.Width, r.TolWidth) });
-          ph += '<div class="ring pk ' + mkClass(r.Product) + (idx === 0 ? ' top' : ' alt') + '" data-product="' + esc(r.Product) + '" data-vals="' + esc(JSON.stringify(pv)) + '">'
-            + '<div class="name">' + esc(r.Code) + '<small>' + useName[r.Use] + '</small></div><dl>'
-            + '<dt class="cd">溝内径 d</dt><dd><b>' + r.D1 + '</b>' + tolHtml(r.TolInner) + '</dd>'
-            + '<dt class="cC">D1</dt><dd>' + (r.DiaD1 ? '<b>' + r.DiaD1 + '</b>' + tolHtml(r.TolD1) : '—') + '</dd>'
-            + '<dt class="cW">' + wl + '</dt><dd><b>' + r.Width + '</b>' + tolHtml(r.TolWidth) + '</dd>'
-            + (r.Backup ? '<dt>バックアップ</dt><dd>' + esc(r.Backup) + '</dd>' : '')
-            + '<dt>メーカー</dt><dd>' + mkTag(r.Product) + '</dd>'
-            + '</dl></div>';
-          idx++;
-        });
-        $('results').innerHTML = ph;
-        if (pr.Candidates.length) setPackingFig(pr.Candidates[0].Product);
-        markFig(document.querySelector('#results .ring.pk'));   // 最初は先頭の結果の寸法を図に示す
-        if (ph) $('msg').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showResults(packingHtml(pr, $('br').value));
         return;
       }
-      var res = Pakkin.findORing({ inner: inner, outer: outer, width: width, use: $('use').value, backupRing: $('br').value, table: table, name: name });
+      var res = Pakkin.findORing({ inner: inner, outer: outer, width: width, use: $('use').value, backupRing: $('br').value, table: table });
 
       var lines = [];
       if (res.GrooveDepth != null) lines.push('溝深さ ' + res.GrooveDepth.toFixed(2) + ' mm');
@@ -436,25 +489,7 @@
         lines.push(countLine(res, '（系列ごとに最大 ' + Pakkin.MaxResults + ' 件、' + order + '）'));
       }
       var m = $('msg'); m.className = ''; m.textContent = lines.join('\n');
-
-      var html = '';
-      ['P', 'G'].forEach(function (s) {
-        var list = res.Candidates.filter(function (r) { return r.Series === s; });
-        if (!list.length) return;
-        html += '<h2>' + s + '系列（' + list.length + ' 件）</h2>';
-        list.forEach(function (r, i) {
-          var ov = [{ k: 'd', l: 'd', v: withTol(fmt(r.StdInner), r.TolInner) }, { k: 'D', l: 'D', v: withTol(fmt(r.StdOuter), r.TolOuter) }, { k: 'W', l: 'G', v: withTol(fmt(r.StdWidth), r.TolWidth) }];
-          html += '<div class="ring or' + (i === 0 ? ' top' : i % 2 ? ' alt' : '') + '" data-name="' + esc(r.Name) + '" data-vals="' + esc(JSON.stringify(ov)) + '">'
-            + '<div class="name">' + esc(r.Name) + '<small>線径 d2 ' + r.D2.toFixed(1) + ' / 内径 d1 ' + r.D1.toFixed(1) + '</small></div><dl>'
-            + '<dt class="cd">溝内径 d</dt><dd>' + fmt(r.StdInner) + '（' + esc(r.TolInner) + '）</dd>'
-            + '<dt class="cD">溝外径 D</dt><dd>' + fmt(r.StdOuter) + '（' + esc(r.TolOuter) + '）</dd>'
-            + '<dt class="cW">溝幅 G</dt><dd>' + fmt(r.StdWidth) + '（' + esc(r.TolWidth) + '）</dd>'
-            + '</dl></div>';
-        });
-      });
-      $('results').innerHTML = html;
-      markOring(document.querySelector('#results .ring.or'));   // 最初は先頭の結果の寸法を図に示す
-      if (html) $('msg').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      showResults(oringHtml(res));
     } catch (err) {
       showError(err.message);
     }

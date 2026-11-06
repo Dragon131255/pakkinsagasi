@@ -367,3 +367,30 @@ function Find-Packing {
         Notes      = $notes
     }
 }
+
+# 呼び番号で、種類（Oリング・Uパッキン・ダストシール）を選ばずにまとめて探す
+# どれかの種類に完全一致があれば、完全一致のない種類の結果は出さない（Total も 0 にする）
+function Find-AllByName {
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [object[]]$ORingTable, [object[]]$PackingTable, [object[]]$DustTable,
+        [ValidateSet('None', 'One', 'Both')][string]$BackupRing = 'None'
+    )
+    $key = ConvertTo-NameKey $Name
+    $all = [ordered]@{
+        ORing   = Find-ORing -Use Static -Table $ORingTable -BackupRing $BackupRing -Name $Name
+        Packing = Find-Packing -Table $PackingTable -BackupRing $BackupRing -Name $Name
+        Dust    = Find-Packing -Table $DustTable -Products $DustProducts -Label 'ダストシール' -Name $Name
+    }
+    $exact = @{}
+    foreach ($k in @($all.Keys)) {
+        $prop = if ($k -eq 'ORing') { 'Name' } else { 'Code' }
+        $exact[$k] = @($all[$k].Candidates | Where-Object { (ConvertTo-NameKey $_.$prop) -eq $key }).Count -gt 0
+    }
+    if ($exact.Values -contains $true) {
+        foreach ($k in @($all.Keys)) {
+            if (-not $exact[$k]) { $all[$k].Candidates = @(); $all[$k].Total = 0 }
+        }
+    }
+    [pscustomobject]$all
+}

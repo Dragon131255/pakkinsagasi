@@ -197,6 +197,17 @@ Describe '呼び番号で探す' {
         $r.Candidates[0].Name | Should Be 'P20'
         $r.Candidates.Count | Should BeGreaterThan 1
     }
+    It '種類をまとめて探し、どれかに完全一致があれば部分一致の種類は出さない' {
+        $dt = @(Get-PackingTable -Path "$root\data\dust_seal.csv")
+        $a = Find-AllByName -Name 'P20' -ORingTable $table -PackingTable $ptable -DustTable $dt
+        $a.ORing.Candidates[0].Name | Should Be 'P20'
+        $a.Packing.Total | Should Be 0   # UHP200 などは出さない
+        $a = Find-AllByName -Name 'lbh20' -ORingTable $table -PackingTable $ptable -DustTable $dt
+        $a.Dust.Candidates[0].Code | Should Be 'LBH-20'
+        $a.ORing.Total | Should Be 0
+        $a = Find-AllByName -Name '40' -ORingTable $table -PackingTable $ptable -DustTable $dt
+        ($a.ORing.Total -gt 0 -and $a.Packing.Total -gt 0 -and $a.Dust.Total -gt 0) | Should Be $true
+    }
     It 'Uパッキン：ハイフンなしでも探せ、件数は上限まで' {
         $r = Find-Packing -Table $ptable -Name 'sky40'
         $r.Candidates.Count | Should Be 1

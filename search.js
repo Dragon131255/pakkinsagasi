@@ -300,7 +300,27 @@
     return { Candidates: candidates, Reasons: reasons, Notes: notes, ByName: byName, Total: total };
   }
 
-  var api = { parseTable: parseTable, findORing: findORing, parsePackingTable: parsePackingTable, findPacking: findPacking, DustProducts: DustProducts, MaxResults: MaxResults };
+  // 呼び番号で、種類（Oリング・Uパッキン・ダストシール）を選ばずにまとめて探す（Search.ps1 の Find-AllByName と同じ）
+  // どれかの種類に完全一致があれば、完全一致のない種類の結果は出さない（Total も 0 にする）
+  function findAllByName(opt) {
+    var key = nameKey(opt.name), br = opt.backupRing || 'None';
+    var all = {
+      ORing: findORing({ use: 'Static', backupRing: br, table: opt.oringTable, name: opt.name }),
+      Packing: findPacking({ backupRing: br, table: opt.packingTable, name: opt.name }),
+      Dust: findPacking({ table: opt.dustTable, products: DustProducts, label: 'ダストシール', name: opt.name })
+    };
+    var exact = {};
+    Object.keys(all).forEach(function (k) {
+      var prop = k === 'ORing' ? 'Name' : 'Code';
+      exact[k] = all[k].Candidates.some(function (c) { return nameKey(c[prop]) === key; });
+    });
+    if (exact.ORing || exact.Packing || exact.Dust) {
+      Object.keys(all).forEach(function (k) { if (!exact[k]) { all[k].Candidates = []; all[k].Total = 0; } });
+    }
+    return all;
+  }
+
+  var api = { findAllByName: findAllByName, parseTable: parseTable, findORing: findORing, parsePackingTable: parsePackingTable, findPacking: findPacking, DustProducts: DustProducts, MaxResults: MaxResults };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Pakkin = api;
 })(this);
