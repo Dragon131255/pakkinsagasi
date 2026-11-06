@@ -227,7 +227,9 @@ function Get-PackingTol {
         $inner += $label + (Format-PackingTol $t[$u].Inner $Row.D1)
         $outer += $label + (Format-PackingTol $t[$u].Outer $Row.D2)
     }
-    @{ Inner = $inner -join '／'; Outer = $outer -join '／'; Width = Format-PackingTol $w 0; D1 = $d1 }
+    # d の公差はピストン用だけを出す（両用もロッド用は出さず「ピストン」の文字も付けない。ロッド専用の製品はロッド用）
+    $innerTol = if ($t.ContainsKey('Piston')) { Format-PackingTol $t.Piston.Inner $Row.D1 } else { $inner -join '／' }
+    @{ Inner = $innerTol; Outer = $outer -join '／'; Width = Format-PackingTol $w 0; D1 = $d1 }
 }
 
 function Find-Packing {

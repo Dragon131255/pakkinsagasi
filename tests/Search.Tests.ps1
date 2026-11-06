@@ -152,7 +152,7 @@ Describe 'Find-Packing' {
         $n.TolInner | Should Be 'f8 -0.025 / -0.064'
         $n.TolOuter | Should Be 'H8 +0.039 / 0'
         $s = @($r.Candidates | Where-Object { $_.Code -eq 'SKY-40' })[0]
-        $s.TolInner | Should Be 'ピストン +0.2 / 0／ロッド f8 -0.025 / -0.064'
+        $s.TolInner | Should Be '+0.2 / 0'   # 両用も d の公差はピストン用だけ（「ピストン」の文字は付けない）
         $s.TolWidth | Should Be '±0.2'
     }
 

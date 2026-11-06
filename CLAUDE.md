@@ -69,7 +69,7 @@
 - 検索結果に出す製品は `Config.ps1` の `$PackingProducts`（と search.js の `PackingProducts`）。阪上は **2026-11-05 から一時的に SKY・KY だけ**（ユーザー指示）＋ UHP・MLP・MLR・UPH。サイズ表のデータは阪上8製品とも残している
 - 公差：検索結果の d・D1・GA/GB の数値の後ろに表示する（2026-11-06 いったん削除後、ユーザー指示で再表示。Web版は色付きの枠、PowerShell版は（ ））。D1 の公差は `D1`、呼び番号で溝幅の公差が違う製品（UHP・MLP）は `WidthByCode`（[GA, GB]）。h10 用に `$FitIT10` を追加。公差の指定は `Config.ps1` の `$PackingTolerance`（出典：各製品ページの寸法指示図、2026-11-05 確認）
   - はめあい記号（H8・H9・h8・f8）は ISO 286（JIS B 0401）の表（`$FitIT8` など、1600mm まで）から数値にする
-  - SKY・KY は両用なので、ピストンに使う場合とロッドに使う場合の公差を両方表示する
+  - d の公差はピストン用だけを表示する（両用の SKY・KY・UPH もロッド用は出さず、「ピストン」の文字も付けない。2026-11-06 ユーザー指示）。ロッド専用の製品（MLR など）はロッド用を出す
 - 図：Uパッキンを選んだときは、溝の断面図の代わりに寸法指示図（`images/<製品>-piston.png`・`images/<製品>-rod.png`、今は SKY・KY・UHP・MLP・MLR・UPH。UHP・MLP はピストン用だけ、MLR はロッド用だけ、UPH は両方）を出す。最初は検索結果の先頭の製品、検索結果の行（Web版はカード）を選ぶとその製品の図に切り替わる
   - 出典：https://www.sakagami-ltd.co.jp/products/hydraulic-seals/<製品> の寸法指示図の余白を切り取ったもの。UHP・MLP・MLR はバルカーのカタログの図を切り取り、B寸法の注記枠は白で消した
   - PowerShell 版は図をクリックでピストン用／ロッド用を切り替え、Web版は2枚を縦に並べる

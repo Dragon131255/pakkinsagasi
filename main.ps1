@@ -292,7 +292,7 @@ function Set-Columns {
     if ($cmbKind.SelectedIndex -eq 1) {
         [void]$list.Columns.Add('指示コード', 95)
         [void]$list.Columns.Add('使用箇所', 70)
-        [void]$list.Columns.Add('d（公差）', 330)
+        [void]$list.Columns.Add('d（公差）', 170)
         [void]$list.Columns.Add('D1（公差）', 95)
         [void]$list.Columns.Add('GA（公差）', 100)
         [void]$list.Columns.Add('バックアップリング', 110)
