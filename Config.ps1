@@ -66,6 +66,16 @@ $PackingTolerance = @{
     'MLR'  = @{ Rod    = @{ Inner = 'f8';     Outer = '0/-0.2' };                                     Width = '+0.5/0' }
     # NOK（UPH 型 E-92 ピストン、E-94 ロッドの装着図）
     'UPH'  = @{ Piston = @{ Inner = 'h10';    Outer = 'H9' }; Rod = @{ Inner = 'f8'; Outer = 'H10' };    Width = '±0.2'; D1 = '±0.2' }
+    # ---- ダストシール（data/dust_seal.csv）----
+    # 阪上 SDR（製品ページの寸法指示図 2024.12-1）。D1＝表の C
+    'SDR'  = @{ Rod = @{ Inner = 'f8'; Outer = '0/-0.2' }; Width = '±0.2'; D1 = '±0.1' }
+    # バルカー DHS（カタログ p.29 の図）。D1＝表の C
+    'DHS'  = @{ Rod = @{ Inner = 'f8'; Outer = '0/-0.2' }; Width = '+0.3/0'; D1 = '±0.1' }
+    # NOK DKI（E-116 の装着図）：D はハウジング穴径（圧入）。溝幅の公差は d の範囲で違う
+    'DKI'  = @{ Rod = @{ Inner = 'f8'; Outer = 'H8' }; Width = '+0.5/+0.3'
+                WidthByD = @(@(50, '+0.5/+0.3'), @(175, '+0.6/+0.4'), @(300, '+0.7/+0.5')) }
+    # NOK LBH（E-140 の装着図）
+    'LBH'  = @{ Rod = @{ Inner = 'f8'; Outer = '0/-0.2' }; Width = '±0.2'; D1 = '±0.1' }
 }
 
 # ISO 286（JIS B 0401）の基本公差と f の基礎となる寸法許容差 [µm]
@@ -81,7 +91,11 @@ $FitEsF       = @(-6, -10, -13, -16, -20, -25, -30, -36, -43, -50, -56, -62, -68
 $PackingProducts = @('SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH')
 
 # バルカーの U パッキン（出典：バルカー 油圧用パッキン カタログ hydraulic-packing_doc.pdf）。UHP・MLP はピストン用、MLR はロッド用
-$ValquaProducts = @('UHP', 'MLP', 'MLR')
+$ValquaProducts = @('UHP', 'MLP', 'MLR', 'DHS')
 
 # NOK の U パッキン（出典：NOK UPH 型 寸法表 UPH.pdf、edccorp.com.tw 掲載）。ピストン・ロッド両用
-$NokProducts = @('UPH')
+$NokProducts = @('UPH', 'DKI', 'LBH')
+
+# ダストシール（ロッド用）。サイズ表は data/dust_seal.csv（列は sakagami_hydraulic.csv と同じ。GA＝GB＝溝幅、Backup は空欄）
+$DustProducts = @('SDR', 'LBH', 'DHS', 'DKI')
+$DustSourceNote = '出典：SDR は阪上製作所の製品ページ、DHS はバルカーの油圧用パッキン カタログ、LBH・DKI は NOK の寸法表。使用条件は各社のカタログで確認してください。'

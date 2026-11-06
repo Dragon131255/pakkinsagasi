@@ -219,6 +219,8 @@ function Get-PackingTol {
     if ($null -eq $t) { return @{ Inner = '—'; Outer = '—'; Width = '—'; D1 = '' } }
     $w = $t.Width
     if ($t.WidthByCode -and $t.WidthByCode.ContainsKey($Row.Code)) { $w = $t.WidthByCode[$Row.Code][[int]$WithBR] }
+    # WidthByD：d の範囲で溝幅の公差が違うとき @(@(d の上限, 公差), ...)（小さい順）
+    if ($t.WidthByD) { foreach ($b in $t.WidthByD) { if ($Row.D1 -le $b[0]) { $w = $b[1]; break } } }
     $d1 = if ($t.D1 -and "$($Row.DiaD1)" -ne '') { Format-PackingTol $t.D1 0 } else { '' }
     $inner = @(); $outer = @()
     foreach ($u in @('Piston', 'Rod')) {
@@ -241,7 +243,9 @@ function Find-Packing {
         # サイズ表の溝幅は「バックアップリングなし（GA）」と「あり（GB）」の2種類。片側・両側はどちらも GB で判定する
         [ValidateSet('None', 'One', 'Both')][string]$BackupRing = 'None',
         # 検索対象の製品（省略時は Config.ps1 の $PackingProducts）
-        [string[]]$Products = $PackingProducts
+        [string[]]$Products = $PackingProducts,
+        # 候補がないときのメッセージに使う名前
+        [string]$Label = 'パッキン'
     )
     $hasInner = $null -ne $GrooveInner
     $hasOuter = $null -ne $GrooveOuter
@@ -294,7 +298,7 @@ function Find-Packing {
     $candidates = @(foreach ($g in $groups) { $g.Items })
 
     $reasons = @()
-    if ($candidates.Count -eq 0) { $reasons += '入力した寸法に合う阪上パッキンはありません（許容差の範囲外）。' }
+    if ($candidates.Count -eq 0) { $reasons += "入力した寸法に合う$($Label)はありません（許容差の範囲外）。" }
 
     [pscustomobject]@{
         Candidates = $candidates

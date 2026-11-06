@@ -74,6 +74,22 @@
   - 出典：https://www.sakagami-ltd.co.jp/products/hydraulic-seals/<製品> の寸法指示図の余白を切り取ったもの。UHP・MLP・MLR はバルカーのカタログの図を切り取り、B寸法の注記枠は白で消した
   - PowerShell 版は図をクリックでピストン用／ロッド用を切り替え、Web版は2枚を縦に並べる
 
+## ダストシール（ロッド用）（2026-11-06 追加、ユーザー指示）
+- 「種類」でダストシールを選ぶ。判定は Uパッキンと同じ `Find-Packing`（`-Products $DustProducts -Label 'ダストシール'`）。バックアップリング・用途は使わない（溝幅は GA で判定）
+- 対象は SDR（阪上）・DHS（バルカー）・LBH・DKI（NOK）の4製品（ユーザー指定。DH は不要）
+- サイズ表 `data/dust_seal.csv`（列は sakagami_hydraulic.csv と同じ。Inner=d、Outer=D、H=シール高さ、GA=GB=溝幅、D1Dia=入口側の穴径（SDR・DHS は表の C、LBH は φS、DKI は空欄））
+  - 出典：SDR https://www.sakagami-ltd.co.jp/products/wipers/sdr ／ DHS バルカー 油圧用パッキン カタログ p.29 ／ LBH https://www.edccorp.com.tw/UploadFile/PK/LBH.pdf ／ DKI https://www.edccorp.com.tw/UploadFile/PK/DKI.pdf
+  - DKI は圧入形で D＝ハウジング穴径。溝幅の公差は d の範囲で違うので `WidthByD` で持つ
+- Web版：結果カードを選ぶと、図の D（緑）・溝幅（橙）の寸法記号を色付きの枠で示し、図の下にその数値を出す。枠の位置は index.html の `DUST_MARKS`（画像のピクセル座標）。図を差し替えたら座標も直す（2026-11-06 ユーザー指示）
+- PowerShell版も同じ：行を選ぶと図に D・溝幅・C の枠を描き、見出しの右に数値を出す。座標は main.ps1 の `$DustMarks`（`DUST_MARKS` と同じ値にしておく）
+  - 一覧の列名「D」「G・H」「C・S」も図の枠と同じ色にする（ListView の OwnerDraw で見出しだけ自前描画）
+- 入力はロッド径 d だけ（D・溝幅の欄は隠し、判定にも使わない。d のラベルは「ロッド径」。2026-11-06 ユーザー指示）
+- 一覧の列：呼び番号・D・溝幅・C（各公差）・メーカー（d は出さない。2026-11-06 ユーザー指示）
+  - 溝幅の記号は図に合わせ SDR・DHS は「G」、LBH・DKI は「H」と表示する（Web版 `W_LABEL`）
+  - C はデータの D1Dia（公差は `D1`）。記号は図に合わせ SDR・DHS は「C」、LBH は「S」。DKI は図にないので出さない。Web版は図の C/S も紫の枠で示す
+- Web版はメーカーごとに色分けする（カード左端の帯・見出しとメーカー欄の札。阪上=青、バルカー=青緑、NOK=赤。Uパッキンも同じ。2026-11-06 ユーザー指示）
+- 図：`images/sdr-rod.png`（阪上製品ページの寸法指示図）、`lbh-rod.png`・`dki-rod.png`（NOK PDF の装着図、右下の注記枠は白で消した）、`dhs-rod.png`（バルカー カタログ p.29）。PDF は WinRT の Windows.Data.Pdf で画像化して切り出し
+
 ## 構成
 ```
 pakkinsagasi/

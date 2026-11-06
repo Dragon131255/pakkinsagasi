@@ -167,8 +167,15 @@
       WidthByCode: { MLP40: ['+0.3/0', '+0.3/0'], MLP50: ['+0.3/0', '+0.3/0'], MLP63: ['+0.3/0', '+0.3/0'], MLP80: ['+0.3/0', '+0.3/0'] } },
     'MLR': { Rod: { Inner: 'f8', Outer: '0/-0.2' }, Width: '+0.5/0' },
     // NOK（UPH 型 E-92 ピストン、E-94 ロッド）
-    'UPH': { Piston: { Inner: 'h10', Outer: 'H9' }, Rod: { Inner: 'f8', Outer: 'H10' }, Width: '±0.2', D1: '±0.2' }
+    'UPH': { Piston: { Inner: 'h10', Outer: 'H9' }, Rod: { Inner: 'f8', Outer: 'H10' }, Width: '±0.2', D1: '±0.2' },
+    // ---- ダストシール（data/dust_seal.csv）。WidthByD：d の範囲ごとの溝幅の公差 [d の上限, 公差] ----
+    'SDR': { Rod: { Inner: 'f8', Outer: '0/-0.2' }, Width: '±0.2', D1: '±0.1' },
+    'DHS': { Rod: { Inner: 'f8', Outer: '0/-0.2' }, Width: '+0.3/0', D1: '±0.1' },
+    'DKI': { Rod: { Inner: 'f8', Outer: 'H8' }, Width: '+0.5/+0.3',
+      WidthByD: [[50, '+0.5/+0.3'], [175, '+0.6/+0.4'], [300, '+0.7/+0.5']] },
+    'LBH': { Rod: { Inner: 'f8', Outer: '0/-0.2' }, Width: '±0.2', D1: '±0.1' }
   };
+  var DustProducts = ['SDR', 'LBH', 'DHS', 'DKI'];   // Config.ps1 の $DustProducts と同じ
   // ISO 286（JIS B 0401）[µm]：寸法区分の上限 [mm]、IT8、IT9、f の上の寸法許容差
   var FitSizeUpper = [3, 6, 10, 18, 30, 50, 80, 120, 180, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600];
   var FitIT8 = [14, 18, 22, 27, 33, 39, 46, 54, 63, 72, 81, 89, 97, 110, 125, 140, 165, 195];
@@ -195,6 +202,7 @@
     var t = PackingTolerance[r.Product];
     if (!t) return { Inner: '—', Outer: '—', Width: '—', D1: '' };
     var w = t.WidthByCode && t.WidthByCode[r.Code] ? t.WidthByCode[r.Code][withBR ? 1 : 0] : t.Width;
+    if (t.WidthByD) for (var b = 0; b < t.WidthByD.length; b++) if (r.D1 <= t.WidthByD[b][0]) { w = t.WidthByD[b][1]; break; }
     var d1 = t.D1 && r.DiaD1 !== '' ? formatPackingTol(t.D1, 0) : '';
     var inner = [], outer = [];
     ['Piston', 'Rod'].forEach(function (u) {
@@ -258,12 +266,12 @@
 
     return {
       Candidates: candidates,
-      Reasons: candidates.length ? [] : ['入力した寸法に合う阪上パッキンはありません（許容差の範囲外）。'],
+      Reasons: candidates.length ? [] : ['入力した寸法に合う' + (opt.label || 'パッキン') + 'はありません（許容差の範囲外）。'],
       Notes: notes
     };
   }
 
-  var api = { parseTable: parseTable, findORing: findORing, parsePackingTable: parsePackingTable, findPacking: findPacking, MaxResults: MaxResults };
+  var api = { parseTable: parseTable, findORing: findORing, parsePackingTable: parsePackingTable, findPacking: findPacking, DustProducts: DustProducts, MaxResults: MaxResults };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Pakkin = api;
 })(this);

@@ -165,3 +165,20 @@ Describe 'Find-Packing' {
         { Find-Packing -GrooveInner 40 -GrooveOuter 30 -Table $ptable -Products $allProducts } | Should Throw
     }
 }
+
+Describe 'Find-Packing（ダストシール）' {
+    $dtable = @(Get-PackingTable -Path "$root\data\dust_seal.csv")
+
+    It 'd=40 で4製品すべてが候補になる' {
+        $r = Find-Packing -GrooveInner 40 -Table $dtable -Products $DustProducts -Label 'ダストシール'
+        @($r.Candidates | ForEach-Object Product | Select-Object -Unique).Count | Should Be 4
+    }
+    It 'DKI の溝幅の公差は d の範囲で切り替わる' {
+        $r = Find-Packing -GrooveInner 100 -Table $dtable -Products @('DKI')
+        $r.Candidates[0].TolWidth | Should Be '+0.6 / +0.4'
+    }
+    It '合わないときはダストシールの名前で理由を出す' {
+        $r = Find-Packing -GrooveInner 999 -Table $dtable -Products $DustProducts -Label 'ダストシール'
+        $r.Reasons[0] | Should Match 'ダストシール'
+    }
+}

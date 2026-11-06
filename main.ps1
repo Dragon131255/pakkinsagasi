@@ -8,6 +8,7 @@ Add-Type -AssemblyName System.Drawing
 
 $table = @(Get-ORingTable -Path "$PSScriptRoot\data\oring_jis_b2401.csv")
 $ptable = @(Get-PackingTable -Path "$PSScriptRoot\data\sakagami_hydraulic.csv")
+$dtable = @(Get-PackingTable -Path "$PSScriptRoot\data\dust_seal.csv")
 
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
@@ -22,7 +23,7 @@ $colMain   = RGB '#1565C0'   # 見出し・ボタン
 $colBg     = RGB '#F3F6FB'
 
 $form = New-Object System.Windows.Forms.Form
-$form.Text = 'パッキン探し（JIS B 2401 Oリング・Uパッキン）'
+$form.Text = 'パッキン探し（JIS B 2401 Oリング・Uパッキン・ダストシール）'
 $form.ClientSize = New-Object System.Drawing.Size(945, 760)
 $form.StartPosition = 'CenterScreen'
 $form.Font = New-Object System.Drawing.Font('Yu Gothic UI', 10)
@@ -68,15 +69,18 @@ $cmbKind = New-Object System.Windows.Forms.ComboBox
 $cmbKind.Location = New-Object System.Drawing.Point(190, 65)
 $cmbKind.Width = 130
 $cmbKind.DropDownStyle = 'DropDownList'
-[void]$cmbKind.Items.AddRange(@('Oリング', 'Uパッキン'))
+[void]$cmbKind.Items.AddRange(@('Oリング', 'Uパッキン', 'ダストシール'))
 $cmbKind.SelectedIndex = 0
 $form.Controls.Add($cmbKind)
 
 New-Label '● d 溝の内径 [mm]' 20 100 $colInner
+$lblInner = $form.Controls[$form.Controls.Count - 1]   # ダストシールのときは「ロッド径」にする
 $txtInner = New-Input 190 97
 New-Label '● D 溝の外径 [mm]' 20 132 $colOuter
+$lblOuter = $form.Controls[$form.Controls.Count - 1]   # ダストシールのときは D・G を隠す（ロッド径だけで検索）
 $txtOuter = New-Input 190 129
 New-Label '● G 溝幅 [mm]' 20 164 $colWidth
+$lblWidth = $form.Controls[$form.Controls.Count - 1]
 $txtWidth = New-Input 190 161
 New-Label '用途' 20 196
 
@@ -156,8 +160,14 @@ $fig.Add_Paint({
     $g.TextRenderingHint = 'ClearTypeGridFit'
 
     # 阪上パッキンのときは阪上製作所の寸法指示図を出す（クリックでピストン用／ロッド用、検索結果の行を選ぶと製品を切り替え）
-    if ($cmbKind.SelectedIndex -eq 1) {
+    if ($cmbKind.SelectedIndex -ge 1) {
         $p = $script:figProduct
+        # 図がない製品（ダストシールなど）は図の代わりに案内を出す
+        if (-not $p -or -not $figImages.ContainsKey($p) -or -not ($figImages[$p].Piston -or $figImages[$p].Rod)) {
+            $t = if ($p) { "$p の寸法指示図はありません" } else { '検索すると製品の寸法指示図を表示します' }
+            Draw-Text $g $t (RGB '#607D8B') 6 2 $true
+            return
+        }
         $useRod = $script:figRod
         # ピストン用だけ・ロッド用だけの製品（UHP・MLP・MLR）は、ある方の図を出す
         if (-not $figImages[$p][$(if ($useRod) { 'Rod' } else { 'Piston' })]) { $useRod = -not $useRod }
@@ -167,12 +177,35 @@ $fig.Add_Paint({
         if ($figImages[$p]['Piston'] -and $figImages[$p]['Rod']) { Draw-Text $g 'クリックで切替' (RGB '#607D8B') 300 2 $false }
         if ($img) {
             $g.InterpolationMode = 'HighQualityBicubic'
+            # 枠（幅 ClientSize−8、高さ 168）に収まるように縮小（縦長の図は高さに合わせる）
             $w = $fig.ClientSize.Width - 8
             $h = [int]($img.Height * $w / $img.Width)
-            $g.DrawImage($img, 4, 24 + [int]((168 - $h) / 2), $w, $h)
+            if ($h -gt 168) { $h = 168; $w = [int]($img.Width * $h / $img.Height) }
+            $ox = 4 + [int](($fig.ClientSize.Width - 8 - $w) / 2); $oy = 24 + [int]((168 - $h) / 2)
+            $g.DrawImage($img, $ox, $oy, $w, $h)
+            # ダストシール：選んだ行の D・溝幅・C を図の寸法記号の場所に色付きの枠で示し、見出しの右に数値を出す
+            $m = $script:dustMark
+            if ($cmbKind.SelectedIndex -eq 2 -and $m -and $m.Product -eq $p -and $DustMarks.ContainsKey($p)) {
+                $k = $w / $img.Width
+                $tx = 6 + $g.MeasureString($title, (New-Object System.Drawing.Font('Yu Gothic UI', 9, [System.Drawing.FontStyle]::Bold))).Width
+                foreach ($a in @(@('D', 'D', $colOuter), @('W', $m.WLabel, $colWidth), @('C', $m.CLabel, $colDepth))) {
+                    $b = $DustMarks[$p][$a[0]]; $v = $m[$a[0]]
+                    if (-not $b -or -not $v) { continue }
+                    $rx = $ox + $b[0] * $k; $ry = $oy + $b[1] * $k; $rw = $b[2] * $k; $rh = $b[3] * $k
+                    $fill = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(50, $a[2]))
+                    $pen = New-Object System.Drawing.Pen $a[2], 2
+                    $g.FillRectangle($fill, [single]$rx, [single]$ry, [single]$rw, [single]$rh)
+                    $g.DrawRectangle($pen, [single]$rx, [single]$ry, [single]$rw, [single]$rh)
+                    $fill.Dispose(); $pen.Dispose()
+                    $t = "$($a[1])=$v"
+                    Draw-Text $g $t $a[2] $tx 2 $true
+                    $tx += $g.MeasureString($t, (New-Object System.Drawing.Font('Yu Gothic UI', 9, [System.Drawing.FontStyle]::Bold))).Width + 2
+                }
+            }
         }
         $src = if ($ValquaProducts -contains $p) { "出典：バルカー 油圧用パッキン カタログ $($p)シリーズ" }
                elseif ($NokProducts -contains $p) { "出典：NOK $($p)型 寸法表" }
+               elseif ($DustProducts -contains $p) { "出典：阪上製作所 $($p) 製品ページ" }
                else { "出典：阪上製作所 $($p)パッキン 製品ページ" }
         Draw-Text $g $src (RGB '#90A4AE') 6 194 $false
         return
@@ -226,7 +259,7 @@ $fig.Add_Paint({
     $ringBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush $ringRect, (RGB '#FF8A80'), (RGB '#B71C1C'), 45.0
     $g.FillEllipse($ringBrush, $ringRect)
     $g.DrawEllipse((New-Object System.Drawing.Pen (RGB '#7F0000'), 1.2), $ringRect)
-    Draw-Text $g $(if ($cmbKind.SelectedIndex -eq 1) { 'パッキン' } else { 'Oリング' }) $colRing 108 ($yBore + 2) $true
+    Draw-Text $g $(if ($cmbKind.SelectedIndex -ge 1) { 'パッキン' } else { 'Oリング' }) $colRing 108 ($yBore + 2) $true
 
     # 中心線
     $cl = New-Object System.Drawing.Pen (RGB '#607D8B'), 1
@@ -268,7 +301,7 @@ $cmbBR.Add_SelectedIndexChanged({ $fig.Invalidate() })
 
 # 阪上パッキンの図（images/<製品>-piston.png・<製品>-rod.png に置いた寸法指示図）
 $figImages = @{}
-foreach ($p in @('SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH')) {
+foreach ($p in @('SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH') + $DustProducts) {
     $figImages[$p] = @{}
     foreach ($u in @('Piston', 'Rod')) {
         $f = "$PSScriptRoot\images\$($p.ToLower())-$($u.ToLower()).png"
@@ -277,8 +310,16 @@ foreach ($p in @('SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH')) {
 }
 $script:figProduct = 'SKY'
 $script:figRod = $false
+# ダストシールの図で D・溝幅・C の寸法記号がある場所（画像のピクセル座標 x, y, 幅, 高さ。index.html の DUST_MARKS と同じ）
+$DustMarks = @{
+    'SDR' = @{ D = @(128, 240, 48, 110); W = @(214, 66, 88, 32); C = @(324, 238, 34, 110) }
+    'DHS' = @{ D = @(264, 170, 40, 130); W = @(408, 48, 32, 26); C = @(494, 168, 32, 95) }
+    'LBH' = @{ D = @(552, 385, 36, 88);  W = @(772, 22, 92, 32); C = @(904, 378, 34, 108) }
+    'DKI' = @{ D = @(562, 360, 38, 105); W = @(812, 14, 42, 32) }
+}
+$script:dustMark = $null   # 選んだ行の @{ Product; D; W; C; CLabel }
 $fig.Add_Click({
-    if ($cmbKind.SelectedIndex -eq 1) { $script:figRod = -not $script:figRod; $fig.Invalidate() }
+    if ($cmbKind.SelectedIndex -ge 1) { $script:figRod = -not $script:figRod; $fig.Invalidate() }
 })
 
 $list = New-Object System.Windows.Forms.ListView
@@ -287,9 +328,31 @@ $list.Size = New-Object System.Drawing.Size(905, 300)
 $list.View = 'Details'
 $list.FullRowSelect = $true
 $list.GridLines = $true
+# 列名を色付けするため見出しだけ自前で描く（行は標準の描画のまま）。ダストシールの D・G/H・C/S は図の枠と同じ色
+$list.OwnerDraw = $true
+$list.Add_DrawItem({ $_.DrawDefault = $true })
+$list.Add_DrawSubItem({ $_.DrawDefault = $true })
+$list.Add_DrawColumnHeader({
+    $e = $_
+    $e.DrawBackground()
+    $t = $e.Header.Text
+    $c = if ($cmbKind.SelectedIndex -ne 2) { $null } elseif ($t -like 'D（*') { $colOuter } elseif ($t -like 'G・H*') { $colWidth } elseif ($t -like 'C・S*') { $colDepth } else { $null }
+    $f = if ($c) { New-Object System.Drawing.Font('Yu Gothic UI', 9, [System.Drawing.FontStyle]::Bold) } else { $e.Font }
+    $r = New-Object System.Drawing.Rectangle ($e.Bounds.X + 4), $e.Bounds.Y, ($e.Bounds.Width - 4), $e.Bounds.Height
+    [System.Windows.Forms.TextRenderer]::DrawText($e.Graphics, $t, $f, $r, $(if ($c) { $c } else { [System.Drawing.SystemColors]::ControlText }),
+        [System.Windows.Forms.TextFormatFlags]'Left, VerticalCenter, EndEllipsis')
+    if ($c) { $f.Dispose() }
+})
 function Set-Columns {
     $list.Items.Clear(); $list.Groups.Clear(); $list.Columns.Clear()
-    if ($cmbKind.SelectedIndex -eq 1) {
+    if ($cmbKind.SelectedIndex -eq 2) {
+        # ダストシール：D・溝幅・C（バックアップリングは使わない。d は出さない。C＝データの D1Dia、LBH の図では S、DKI はなし）
+        [void]$list.Columns.Add('呼び番号', 100)
+        [void]$list.Columns.Add('D（公差）', 170)
+        [void]$list.Columns.Add('G・H（公差）', 140)
+        [void]$list.Columns.Add('C・S（公差）', 130)
+        [void]$list.Columns.Add('メーカー', 90)
+    } elseif ($cmbKind.SelectedIndex -eq 1) {
         [void]$list.Columns.Add('指示コード', 95)
         [void]$list.Columns.Add('使用箇所', 70)
         [void]$list.Columns.Add('d（公差）', 170)
@@ -311,8 +374,9 @@ $form.Controls.Add($list)
 
 # 阪上パッキンの検索結果で行を選ぶと、図をその製品の寸法指示図にする（図がある製品だけ）
 $list.Add_SelectedIndexChanged({
-    if ($cmbKind.SelectedIndex -ne 1 -or $list.SelectedItems.Count -eq 0) { return }
+    if ($cmbKind.SelectedIndex -lt 1 -or $list.SelectedItems.Count -eq 0) { return }
     $grp = $list.SelectedItems[0].Group
+    if ($cmbKind.SelectedIndex -eq 2) { $script:dustMark = $list.SelectedItems[0].Tag }
     if ($grp -and $figImages.ContainsKey($grp.Name)) { $script:figProduct = $grp.Name; $fig.Invalidate() }
 })
 
@@ -320,7 +384,11 @@ $list.Add_SelectedIndexChanged({
 $cmbKind.Add_SelectedIndexChanged({
     Set-Columns
     $cmbUse.Enabled = $cmbKind.SelectedIndex -eq 0
-    $fig.Cursor = if ($cmbKind.SelectedIndex -eq 1) { 'Hand' } else { 'Default' }
+    $cmbBR.Enabled = $cmbKind.SelectedIndex -ne 2   # ダストシールはバックアップリングを使わない
+    $lblInner.Text = if ($cmbKind.SelectedIndex -eq 2) { '● d ロッド径 [mm]' } else { '● d 溝の内径 [mm]' }
+    foreach ($c in @($lblOuter, $txtOuter, $lblWidth, $txtWidth)) { $c.Visible = $cmbKind.SelectedIndex -ne 2 }
+    $script:figProduct = if ($cmbKind.SelectedIndex -eq 1) { 'SKY' } else { '' }
+    $fig.Cursor = if ($cmbKind.SelectedIndex -ge 1) { 'Hand' } else { 'Default' }
     $msg.Text = ''
     $fig.Invalidate()
 })
@@ -348,10 +416,47 @@ $btn.Add_Click({
     $list.Items.Clear()
     $msg.Text = ''
     try {
-        $inner = Read-Number $txtInner '溝の内径'
-        $outer = Read-Number $txtOuter '溝の外径'
-        $width = Read-Number $txtWidth '溝幅'
+        $inner = Read-Number $txtInner $(if ($cmbKind.SelectedIndex -eq 2) { 'ロッド径' } else { '溝の内径' })
+        $outer = if ($cmbKind.SelectedIndex -eq 2) { $null } else { Read-Number $txtOuter '溝の外径' }   # ダストシールはロッド径だけ
+        $width = if ($cmbKind.SelectedIndex -eq 2) { $null } else { Read-Number $txtWidth '溝幅' }
 
+        if ($cmbKind.SelectedIndex -eq 2) {
+            # ダストシール：製品ごとにグループ表示（溝幅は GA で判定）
+            $result = Find-Packing -GrooveInner $inner -GrooveOuter $outer -GrooveWidth $width -Table $dtable -Products $DustProducts -Label 'ダストシール'
+            $list.Groups.Clear()
+            $groups = @{}; $rank = @{}
+            foreach ($r in $result.Candidates) {
+                if (-not $groups.ContainsKey($r.Product)) {
+                    $n = @($result.Candidates | Where-Object { $_.Product -eq $r.Product }).Count
+                    $groups[$r.Product] = $list.Groups.Add($r.Product, "$($r.Product)（$n 件）")
+                }
+                $i = [int]$rank[$r.Product]; $rank[$r.Product] = $i + 1
+                $item = New-Object System.Windows.Forms.ListViewItem($r.Code)
+                $item.Group = $groups[$r.Product]
+                $vC = if ($r.DiaD1) { $(if ($r.Product -eq 'LBH') { 'S ' } else { 'C ' }) + $(if ($r.TolD1) { "$($r.DiaD1)（$($r.TolD1)）" } else { $r.DiaD1 }) } else { '—' }
+                $wl = if (@('LBH', 'DKI') -contains $r.Product) { 'H' } else { 'G' }   # 溝幅の記号（図に合わせる）
+                foreach ($v in @("$($r.D2)（$($r.TolOuter)）", "$wl $($r.Width)（$($r.TolWidth)）", $vC, (Get-Maker $r.Product))) {
+                    [void]$item.SubItems.Add([string]$v)
+                }
+                $item.Tag = @{ Product = $r.Product; D = "$($r.D2)"; W = "$($r.Width)"
+                               C = $(if ($r.DiaD1 -and $DustMarks[$r.Product].C) { "$($r.DiaD1)" } else { '' })
+                               CLabel = $(if ($r.Product -eq 'LBH') { 'S' } else { 'C' }); WLabel = $wl }
+                $item.BackColor = if ($i -eq 0) { RGB '#C8E6C9' } else { RGB '#E3F2FD' }
+                if ($i -eq 0) { $item.Font = New-Object System.Drawing.Font('Yu Gothic UI', 10, [System.Drawing.FontStyle]::Bold) }
+                [void]$list.Items.Add($item)
+            }
+            $lines = @('判定条件：' + ($result.Notes -join ' / '))
+            if ($result.Candidates.Count -eq 0) { $lines += $result.Reasons }
+            else {
+                $lines += "$($result.Candidates.Count) 件見つかりました（製品ごとに最大 $MaxResults 件、寸法の差が小さい順）。"
+                $lines += $DustSourceNote
+            }
+            $msg.Text = $lines -join "`r`n"
+            $script:figProduct = if ($result.Candidates.Count -gt 0) { $result.Candidates[0].Product } else { '' }
+            $script:dustMark = if ($list.Items.Count -gt 0) { $list.Items[0].Tag } else { $null }   # 最初は先頭の結果を図に示す
+            $fig.Invalidate()
+            return
+        }
         if ($cmbKind.SelectedIndex -eq 1) {
             # 阪上パッキン：製品ごとにグループ表示
             $br = @('None', 'One', 'Both')[$cmbBR.SelectedIndex]
