@@ -497,6 +497,11 @@ $btn.Add_Click({
             # 種類を選ばなくても探す：今の種類に結果がなければ、結果のある最初の種類に切り替える
             $all = Find-AllByName -Name $name -ORingTable $table -PackingTable $ptable -DustTable $dtable -BackupRing (@("None", "One", "Both")[$cmbBR.SelectedIndex])
             $tot = @($all.ORing.Total, $all.Packing.Total, $all.Dust.Total)
+            if (($tot | Measure-Object -Sum).Sum -eq 0) {
+                $msg.Text = "呼び番号に「$name」を含むものは、Oリング・Uパッキン・ダストシールのどれにもありません。"
+                $script:figMark = $null; $fig.Invalidate()
+                return
+            }
             if ($tot[$cmbKind.SelectedIndex] -eq 0) {
                 for ($k = 0; $k -lt 3; $k++) { if ($tot[$k] -gt 0) { $cmbKind.SelectedIndex = $k; break } }
             }

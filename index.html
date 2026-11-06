@@ -428,7 +428,7 @@
     var res = all.ORing, pr = all.Packing, dr = all.Dust;
     var parts = [['Oリング', res], ['Uパッキン', pr], ['ダストシール', dr]];
     var lines = ['呼び番号に「' + name + '」を含むもの（種類・寸法・用途は使いません）'];
-    if (!(res.Total + pr.Total + dr.Total)) lines.push('見つかりませんでした。');
+    if (!(res.Total + pr.Total + dr.Total)) lines.push('Oリング・Uパッキン・ダストシールのどれにもありません。');
     else {
       lines.push(parts.filter(function (p) { return p[1].Total; }).map(function (p) {
         return p[0] + ' ' + p[1].Total + ' 件' + (p[1].Total > p[1].Candidates.length ? '（先頭 ' + p[1].Candidates.length + ' 件を表示）' : '');
