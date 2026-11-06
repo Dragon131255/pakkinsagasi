@@ -12,13 +12,15 @@
 
   // 呼び番号の比較用（Search.ps1 の ConvertTo-NameKey と同じ）：全角→半角、大文字にし、ハイフン・空白・* などを除く
   function nameKey(s) { return String(s == null ? '' : s).normalize('NFKC').toUpperCase().replace(/[\s\-_*・－ー]/g, ''); }
-  // 呼び番号に name を含む行を、完全一致 → 前方一致 → 部分一致、表の順で返す（Select-ByName と同じ）
+  // 呼び番号が name と完全に一致する行があればそれだけ。なければ name を含む行を 前方一致 → 部分一致、表の順で返す（Select-ByName と同じ）
   function selectByName(table, prop, name) {
     var key = nameKey(name);
-    return table.map(function (r, i) {
+    var hits = table.map(function (r, i) {
       var k = nameKey(r[prop]);
       return { r: r, i: i, rank: k.indexOf(key) < 0 ? -1 : k === key ? 0 : k.indexOf(key) === 0 ? 1 : 2 };
-    }).filter(function (x) { return x.rank >= 0; })
+    }).filter(function (x) { return x.rank >= 0; });
+    var exact = hits.filter(function (x) { return x.rank === 0; });
+    return (exact.length ? exact : hits)
       .sort(function (a, b) { return a.rank - b.rank || a.i - b.i; })
       .map(function (x) { return x.r; });
   }

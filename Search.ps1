@@ -7,7 +7,7 @@ function ConvertTo-NameKey([string]$s) {
     ($s.Normalize([Text.NormalizationForm]::FormKC).ToUpperInvariant()) -replace '[\s\-_*・－ー]', ''
 }
 
-# 呼び番号に $Name を含む行を、完全一致 → 前方一致 → 部分一致、表の順で返す
+# 呼び番号が $Name と完全に一致する行があればそれだけを返す。なければ $Name を含む行を 前方一致 → 部分一致、表の順で返す
 function Select-ByName {
     param([object[]]$Table, [string]$Property, [string]$Name)
     $key = ConvertTo-NameKey $Name
@@ -19,6 +19,8 @@ function Select-ByName {
         $rank = if ($k -eq $key) { 0 } elseif ($k.StartsWith($key)) { 1 } else { 2 }
         [pscustomobject]@{ Row = $r; Rank = $rank; Order = $i }
     }
+    $hits = @($hits)
+    if (@($hits | Where-Object { $_.Rank -eq 0 }).Count -gt 0) { $hits = @($hits | Where-Object { $_.Rank -eq 0 }) }
     @($hits | Sort-Object Rank, Order | ForEach-Object { $_.Row })
 }
 
