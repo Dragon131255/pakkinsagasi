@@ -77,7 +77,7 @@
     <div class="row"><label for="pname">検索</label>
       <input id="pname" autocomplete="off" autocapitalize="characters" placeholder="例 P20、SKY40（種類を選ばなくても探せます）"></div>
     <div class="row"><label for="kind">種類</label>
-      <select id="kind"><option value="oring">Oリング（JIS B 2401）</option><option value="packing">Uパッキン（油圧）</option><option value="dust">ダストシール</option></select></div>
+      <select id="kind"><option value="oring">Oリング（JIS B 2401）</option><option value="packing">Uパッキン（油圧）</option><option value="dust">ダストシール</option><option value="wear">ウェアリング（ピストン用）</option></select></div>
     <div class="row"><label for="inner"><span class="dot" style="background:var(--inner)"></span><span id="innerLabel">d 溝の内径</span> [mm]</label>
       <input id="inner" inputmode="decimal" autocomplete="off"></div>
     <div class="row" id="outerRow"><label for="outer"><span class="dot" style="background:var(--outer)"></span>D 溝の外径 [mm]</label>
@@ -174,11 +174,17 @@
     .then(function (r) { if (!r.ok) throw new Error(); return r.text(); })
     .then(function (t) { dtable = Pakkin.parsePackingTable(t); })
     .catch(function () { showError('サイズ表（data/dust_seal.csv）を読み込めませんでした。'); });
+  var wtable = null;
+  fetch('data/wear_ring.csv')
+    .then(function (r) { if (!r.ok) throw new Error(); return r.text(); })
+    .then(function (t) { wtable = Pakkin.parsePackingTable(t); })
+    .catch(function () { showError('サイズ表（data/wear_ring.csv）を読み込めませんでした。'); });
 
   // 阪上パッキンの図：寸法指示図がある製品だけ切り替える
   // 製品ごとにある図（ピストン用・ロッド用）。UHP・MLP・MLR はバルカー、UPH は NOK のカタログの図
-  var FIG_PRODUCTS = { SKY: ['piston', 'rod'], KY: ['piston', 'rod'], UHP: ['piston'], MLP: ['piston'], MLR: ['rod'], UPH: ['piston', 'rod'], SDR: ['rod'], LBH: ['rod'], DHS: ['rod'], DKI: ['rod'] };
-  var VALQUA = ['UHP', 'MLP', 'MLR', 'DHS'], NOK = ['UPH', 'DKI', 'LBH'];
+  var FIG_PRODUCTS = { SKY: ['piston', 'rod'], KY: ['piston', 'rod'], UHP: ['piston'], MLP: ['piston'], MLR: ['rod'], UPH: ['piston', 'rod'], SDR: ['rod'], LBH: ['rod'], DHS: ['rod'], DKI: ['rod'],
+    SW: ['piston'], SWA: ['piston'], SWB: ['piston'], SWO: ['piston'], WR: ['piston'], WPL: ['piston'], WPG: ['piston'] };
+  var VALQUA = ['UHP', 'MLP', 'MLR', 'DHS', 'WPL', 'WPG'], NOK = ['UPH', 'DKI', 'LBH', 'WR'];
   function maker(p) { return VALQUA.indexOf(p) >= 0 ? 'バルカー' : NOK.indexOf(p) >= 0 ? 'NOK' : '阪上製作所'; }
   function mkClass(p) { return VALQUA.indexOf(p) >= 0 ? 'mk-valqua' : NOK.indexOf(p) >= 0 ? 'mk-nok' : 'mk-sakagami'; }
   function mkTag(p) { return '<span class="mkTag ' + mkClass(p) + '">' + maker(p) + '</span>'; }
@@ -198,7 +204,7 @@
     $('pkSrc').innerHTML = VALQUA.indexOf(p) >= 0
       ? 'バルカー 油圧用パッキン カタログ <span class="figP"></span>シリーズ'
       : NOK.indexOf(p) >= 0 ? 'NOK <span class="figP"></span>型 寸法表'
-      : p === 'SDR' ? '阪上製作所 <span class="figP"></span> 製品ページ'
+      : p === 'SDR' || /^SW/.test(p) ? '阪上製作所 <span class="figP"></span> 製品ページ'
       : '阪上製作所 <span class="figP"></span>パッキン 製品ページ';
     [].forEach.call(document.querySelectorAll('.figP'), function (el) { el.textContent = p; });
   }
@@ -217,7 +223,15 @@
     'mlp-piston': { w: 1200, h: 391, d: [418, 182, 32, 70], D1: [270, 172, 30, 90], GA: [344, 180, 38, 28], GB: [500, 178, 46, 28] },
     'mlr-rod': { w: 1200, h: 370, d: [418, 118, 32, 72], GA: [356, 8, 44, 28], GB: [355, 294, 46, 30] },
     'uph-piston': { w: 1200, h: 605, d: [442, 268, 30, 68], D1: [768, 243, 32, 90], GA: [434, 502, 66, 26], GB: [632, 502, 74, 26] },
-    'uph-rod': { w: 1200, h: 634, d: [378, 298, 32, 100], GA: [606, 592, 78, 28], GB: [598, 48, 84, 28] }
+    'uph-rod': { w: 1200, h: 634, d: [378, 298, 32, 100], GA: [606, 592, 78, 28], GB: [598, 48, 84, 28] },
+    // ウェアリング：d・D・W（溝幅）・D1
+    'sw-piston': { w: 1200, h: 407, D: [404, 182, 28, 78], d: [428, 182, 26, 66], D1: [450, 192, 42, 74], W: [464, 6, 60, 26] },
+    'swa-piston': { w: 1200, h: 396, D: [372, 196, 26, 70], d: [414, 196, 26, 64], D1: [453, 192, 30, 74], W: [452, 2, 60, 26] },
+    'swb-piston': { w: 1200, h: 424, D: [362, 208, 26, 68], d: [476, 202, 40, 76], D1: [526, 202, 30, 74], W: [510, 26, 62, 36] },
+    'swo-piston': { w: 1200, h: 364, D: [383, 172, 26, 70], D1: [415, 176, 26, 72], d: [558, 192, 26, 36], W: [551, 2, 52, 36] },
+    'wr-piston': { w: 1200, h: 586, D: [408, 278, 28, 124], d: [692, 298, 36, 90], W: [731, 3, 62, 38] },
+    'wpl-piston': { w: 1200, h: 614, D: [476, 252, 32, 110], d: [783, 278, 30, 86], W: [786, 28, 40, 34] },
+    'wpg-piston': { w: 1200, h: 649, D: [468, 282, 28, 92], d: [668, 282, 28, 92], W: [752, 562, 56, 46] }
   };
   var MARK_COLOR = { d: 'var(--inner)', D: 'var(--outer)', D1: 'var(--depth)', C: 'var(--depth)', W: 'var(--width)', GA: 'var(--width)', GB: 'var(--width)' };
   var MARK_CLASS = { d: 'cd', D: 'cD', D1: 'cC', C: 'cC', W: 'cW', GA: 'cW', GB: 'cW' };
@@ -226,7 +240,7 @@
   // 入口側の穴径（データの D1Dia）の、図での記号。DKI の図にはない
   var C_LABEL = { SDR: 'C', DHS: 'C', LBH: 'S' };
   // 溝幅の、図での記号
-  var W_LABEL = { SDR: 'G', DHS: 'G', LBH: 'H', DKI: 'H' };
+  var W_LABEL = { SDR: 'G', DHS: 'G', LBH: 'H', DKI: 'H', SW: 'G', SWA: 'G', SWB: 'G', SWO: 'G', WR: 'H', WPL: 'G', WPG: 'G' };
   // 選んだカードの寸法を、図（ピストン用・ロッド用）の記号の場所に色付きの枠で示し、図の下に数値を出す（card が null なら消す）
   // カードの data-vals：[{ k: 図のキー, l: 表示名, v: 値（公差付き） }, ...]
   function markFig(card) {
@@ -280,16 +294,16 @@
 
   // 阪上パッキンは運動用なので「用途」は使わない
   $('kind').addEventListener('change', function () {
-    var pk = $('kind').value === 'packing', dust = $('kind').value === 'dust';
-    $('use').disabled = pk || dust;
-    $('br').disabled = dust;   // ダストシールはバックアップリングを使わない
+    var pk = $('kind').value === 'packing', dust = $('kind').value === 'dust', wear = $('kind').value === 'wear';
+    $('use').disabled = pk || dust || wear;
+    $('br').disabled = dust || wear;   // ダストシール・ウェアリングはバックアップリングを使わない
     $('figRing').textContent = pk ? 'パッキン' : 'Oリング';
     $('innerLabel').textContent = dust ? 'd ロッド径' : 'd 溝の内径';
     $('outerRow').hidden = dust; $('widthRow').hidden = dust;   // ダストシールはロッド径だけで検索
-    document.querySelector('#figCard svg').style.display = pk || dust ? 'none' : '';
-    if (pk) setPackingFig('SKY'); else if (dust) setPackingFig('SDR');
+    document.querySelector('#figCard svg').style.display = pk || dust || wear ? 'none' : '';
+    if (pk) setPackingFig('SKY'); else if (dust) setPackingFig('SDR'); else if (wear) setPackingFig('SW');
     markFig(null); markOring(null);
-    $('pkFig').hidden = !(pk || dust);
+    $('pkFig').hidden = !(pk || dust || wear);
     $('msg').className = ''; $('msg').textContent = '寸法を入力して［検索］を押してください。'; $('results').innerHTML = '';
   });
 
@@ -359,6 +373,28 @@
     });
     return dh;
   }
+  function wearHtml(wr) {
+    var h = '', prev = null, idx = 0;
+    wr.Candidates.forEach(function (r) {
+      if (r.Product !== prev) {
+        var n = wr.Candidates.filter(function (x) { return x.Product === r.Product; }).length;
+        h += '<h2>' + esc(r.Product) + '（' + n + ' 件）' + mkTag(r.Product) + '</h2>'; prev = r.Product; idx = 0;
+      }
+      var wl = W_LABEL[r.Product] || '溝幅';
+      var v = [{ k: 'd', l: 'd', v: withTol(r.D1, r.TolInner) }, { k: 'D', l: 'D', v: withTol(r.D2, r.TolOuter) }, { k: 'W', l: wl, v: withTol(r.Width, r.TolWidth) }];
+      if (r.DiaD1) v.push({ k: 'D1', l: 'D1', v: withTol(r.DiaD1, r.TolD1) });
+      h += '<div class="ring pk ' + mkClass(r.Product) + (idx === 0 ? ' top' : ' alt') + '" data-product="' + esc(r.Product) + '" data-vals="' + esc(JSON.stringify(v)) + '">'
+        + '<div class="name">' + esc(r.Code) + '<small>ピストン用</small></div><dl>'
+        + '<dt class="cd">d</dt><dd><b>' + r.D1 + '</b>' + tolHtml(r.TolInner) + '</dd>'
+        + '<dt class="cD">D</dt><dd><b>' + r.D2 + '</b>' + tolHtml(r.TolOuter) + '</dd>'
+        + '<dt class="cW">' + wl + '</dt><dd><b>' + r.Width + '</b>' + tolHtml(r.TolWidth) + '</dd>'
+        + (r.DiaD1 ? '<dt class="cC">D1</dt><dd><b>' + esc(r.DiaD1) + '</b>' + tolHtml(r.TolD1) + '</dd>' : '')
+        + '<dt>メーカー</dt><dd>' + mkTag(r.Product) + '</dd>'
+        + '</dl></div>';
+      idx++;
+    });
+    return h;
+  }
   function packingHtml(pr, br) {
     var useName = { Piston: 'ピストン用', Rod: 'ロッド用', Both: 'ピストン・ロッド両用' };
     var ph = '', prev = null, idx = 0;
@@ -422,20 +458,20 @@
 
   // 呼び番号で探す：種類を選ばなくても、Oリング・Uパッキン・ダストシールをまとめて探す
   function searchByName(name) {
-    if (!table || !ptable || !dtable) throw new Error('規格表を読み込み中です。少し待ってからもう一度押してください。');
+    if (!table || !ptable || !dtable || !wtable) throw new Error('規格表を読み込み中です。少し待ってからもう一度押してください。');
     var br = $('br').value;
-    var all = Pakkin.findAllByName({ name: name, backupRing: br, oringTable: table, packingTable: ptable, dustTable: dtable });
-    var res = all.ORing, pr = all.Packing, dr = all.Dust;
-    var parts = [['Oリング', res], ['Uパッキン', pr], ['ダストシール', dr]];
+    var all = Pakkin.findAllByName({ name: name, backupRing: br, oringTable: table, packingTable: ptable, dustTable: dtable, wearTable: wtable });
+    var res = all.ORing, pr = all.Packing, dr = all.Dust, wr = all.Wear;
+    var parts = [['Oリング', res], ['Uパッキン', pr], ['ダストシール', dr], ['ウェアリング', wr]];
     var lines = ['呼び番号に「' + name + '」を含むもの（種類・寸法・用途は使いません）'];
-    if (!(res.Total + pr.Total + dr.Total)) lines.push('Oリング・Uパッキン・ダストシールのどれにもありません。');
+    if (!(res.Total + pr.Total + dr.Total + wr.Total)) lines.push('Oリング・Uパッキン・ダストシール・ウェアリングのどれにもありません。');
     else {
       lines.push(parts.filter(function (p) { return p[1].Total; }).map(function (p) {
         return p[0] + ' ' + p[1].Total + ' 件' + (p[1].Total > p[1].Candidates.length ? '（先頭 ' + p[1].Candidates.length + ' 件を表示）' : '');
       }).join('、') + ' 見つかりました（一致の近い順）。');
     }
     $('msg').className = ''; $('msg').textContent = lines.join('\n');
-    showResults(oringHtml(res, 'Oリング ') + packingHtml(pr, br) + dustHtml(dr));
+    showResults(oringHtml(res, 'Oリング ') + packingHtml(pr, br) + dustHtml(dr) + wearHtml(wr));
   }
 
   $('form').addEventListener('submit', function (e) {
@@ -450,6 +486,19 @@
       var outer = isDust ? null : readNumber('outer', '溝の外径');
       var width = isDust ? null : readNumber('width', '溝幅');
 
+      if ($('kind').value === 'wear') {
+        if (!wtable) throw new Error('サイズ表を読み込み中です。少し待ってからもう一度押してください。');
+        var wr = Pakkin.findPacking({ inner: inner, outer: outer, width: width, backupRing: 'None', table: wtable, products: Pakkin.WearProducts, label: 'ウェアリング' });
+        var wl = ['判定条件：' + wr.Notes.join(' / ')];
+        if (wr.Candidates.length === 0) wl = wl.concat(wr.Reasons);
+        else {
+          wl.push(countLine(wr, '（製品ごとに最大 ' + Pakkin.MaxResults + ' 件、寸法の差が小さい順）'));
+          wl.push('出典：SW・SWA・SWB・SWO は阪上製作所の製品ページ、WR は NOK の WR 型 寸法表、WPL・WPG はバルカーの油圧用パッキン カタログ。使用条件は各社のカタログで確認してください。');
+        }
+        $('msg').className = ''; $('msg').textContent = wl.join('\n');
+        showResults(wearHtml(wr));
+        return;
+      }
       if (isDust) {
         if (!dtable) throw new Error('サイズ表を読み込み中です。少し待ってからもう一度押してください。');
         var dr = Pakkin.findPacking({ inner: inner, outer: outer, width: width, backupRing: 'None', table: dtable, products: Pakkin.DustProducts, label: 'ダストシール' });

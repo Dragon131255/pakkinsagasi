@@ -222,3 +222,31 @@ Describe '呼び番号で探す' {
         $r.Reasons[0] | Should Match 'GPY'
     }
 }
+
+Describe 'Find-Packing（ウェアリング）' {
+    $wtable = @(Get-PackingTable -Path "$root\data\wear_ring.csv")
+
+    It 'D=100・d=94・溝幅=25 で SW-100 と WR-100 が出る' {
+        $r = Find-Packing -GrooveInner 94 -GrooveOuter 100 -GrooveWidth 25 -Table $wtable -Products $WearProducts -Label 'ウェアリング'
+        @($r.Candidates | ForEach-Object { $_.Code }) -contains 'SW-100' | Should Be $true
+        @($r.Candidates | ForEach-Object { $_.Code }) -contains 'WR-100' | Should Be $true
+    }
+    It 'e7・h8 の公差を数値にする（SWA-100：d=95 e7、D1=99.4 h8）' {
+        $r = Find-Packing -Table $wtable -Products $WearProducts -Name 'SWA-100'
+        $c = $r.Candidates[0]
+        $c.TolInner | Should Be 'e7 -0.072 / -0.107'
+        $c.TolOuter | Should Be 'H9 +0.087 / 0'
+        $c.TolD1 | Should Be 'h8 0 / -0.054'
+    }
+    It 'SWO-125 だけ d の公差が違う' {
+        (Find-Packing -Table $wtable -Products $WearProducts -Name 'SWO-125').Candidates[0].TolInner | Should Be '0 / -0.08'
+        (Find-Packing -Table $wtable -Products $WearProducts -Name 'SWO-100').Candidates[0].TolInner | Should Be '0 / -0.05'
+    }
+    It '呼び番号でまとめて探すとウェアリングも出る' {
+        $dt = @(Get-PackingTable -Path "$root\data\dust_seal.csv")
+        $pt = @(Get-PackingTable -Path "$root\data\sakagami_hydraulic.csv")
+        $a = Find-AllByName -Name 'wpl100' -ORingTable $table -PackingTable $pt -DustTable $dt -WearTable $wtable
+        $a.Wear.Candidates[0].Code | Should Be 'WPL100'
+        $a.Packing.Total | Should Be 0
+    }
+}

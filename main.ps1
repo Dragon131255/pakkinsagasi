@@ -9,6 +9,7 @@ Add-Type -AssemblyName System.Drawing
 $table = @(Get-ORingTable -Path "$PSScriptRoot\data\oring_jis_b2401.csv")
 $ptable = @(Get-PackingTable -Path "$PSScriptRoot\data\sakagami_hydraulic.csv")
 $dtable = @(Get-PackingTable -Path "$PSScriptRoot\data\dust_seal.csv")
+$wtable = @(Get-PackingTable -Path "$PSScriptRoot\data\wear_ring.csv")
 
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
@@ -78,7 +79,7 @@ $cmbKind = New-Object System.Windows.Forms.ComboBox
 $cmbKind.Location = New-Object System.Drawing.Point(190, 97)
 $cmbKind.Width = 130
 $cmbKind.DropDownStyle = 'DropDownList'
-[void]$cmbKind.Items.AddRange(@('Oリング', 'Uパッキン', 'ダストシール'))
+[void]$cmbKind.Items.AddRange(@('Oリング', 'Uパッキン', 'ダストシール', 'ウェアリング'))
 $cmbKind.SelectedIndex = 0
 $form.Controls.Add($cmbKind)
 
@@ -232,7 +233,7 @@ $fig.Add_Paint({
         }
         $src = if ($ValquaProducts -contains $p) { "出典：バルカー 油圧用パッキン カタログ $($p)シリーズ" }
                elseif ($NokProducts -contains $p) { "出典：NOK $($p)型 寸法表" }
-               elseif ($DustProducts -contains $p) { "出典：阪上製作所 $($p) 製品ページ" }
+               elseif ($DustProducts -contains $p -or $WearProducts -contains $p) { "出典：阪上製作所 $($p) 製品ページ" }
                else { "出典：阪上製作所 $($p)パッキン 製品ページ" }
         Draw-Text $g $src (RGB '#90A4AE') 6 194 $false
         return
@@ -349,7 +350,7 @@ $cmbBR.Add_SelectedIndexChanged({ $fig.Invalidate() })
 
 # 阪上パッキンの図（images/<製品>-piston.png・<製品>-rod.png に置いた寸法指示図）
 $figImages = @{}
-foreach ($p in @('SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH') + $DustProducts) {
+foreach ($p in @('SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH') + $DustProducts + $WearProducts) {
     $figImages[$p] = @{}
     foreach ($u in @('Piston', 'Rod')) {
         $f = "$PSScriptRoot\images\$($p.ToLower())-$($u.ToLower()).png"
@@ -375,6 +376,15 @@ $FigMarks = @{
     'uph-piston' = @{ d = @(442, 268, 30, 68); D1 = @(768, 243, 32, 90); GA = @(434, 502, 66, 26); GB = @(632, 502, 74, 26) }
     'uph-rod'    = @{ d = @(378, 298, 32, 100); GA = @(606, 592, 78, 28); GB = @(598, 48, 84, 28) }
 }
+# ウェアリング：d・D・W（溝幅）・D1。d と D が両方あるので、大文字小文字を区別する表で持つ
+function New-MarkTable { $h = New-Object System.Collections.Hashtable ([StringComparer]::Ordinal); for ($i = 0; $i -lt $args.Count; $i += 2) { $h[$args[$i]] = $args[$i + 1] }; $h }
+$FigMarks['sw-piston']  = New-MarkTable 'D' @(404, 182, 28, 78) 'd' @(428, 182, 26, 66) 'D1' @(450, 192, 42, 74) 'W' @(464, 6, 60, 26)
+$FigMarks['swa-piston'] = New-MarkTable 'D' @(372, 196, 26, 70) 'd' @(414, 196, 26, 64) 'D1' @(453, 192, 30, 74) 'W' @(452, 2, 60, 26)
+$FigMarks['swb-piston'] = New-MarkTable 'D' @(362, 208, 26, 68) 'd' @(476, 202, 40, 76) 'D1' @(526, 202, 30, 74) 'W' @(510, 26, 62, 36)
+$FigMarks['swo-piston'] = New-MarkTable 'D' @(383, 172, 26, 70) 'D1' @(415, 176, 26, 72) 'd' @(558, 192, 26, 36) 'W' @(551, 2, 52, 36)
+$FigMarks['wr-piston']  = New-MarkTable 'D' @(408, 278, 28, 124) 'd' @(692, 298, 36, 90) 'W' @(731, 3, 62, 38)
+$FigMarks['wpl-piston'] = New-MarkTable 'D' @(476, 252, 32, 110) 'd' @(783, 278, 30, 86) 'W' @(786, 28, 40, 34)
+$FigMarks['wpg-piston'] = New-MarkTable 'D' @(468, 282, 28, 92) 'd' @(668, 282, 28, 92) 'W' @(752, 562, 56, 46)
 # d と D を区別するため大文字小文字を区別する表にする（@{} は区別しない）
 $MarkColors = New-Object System.Collections.Hashtable ([StringComparer]::Ordinal)
 $MarkColors['d'] = $colInner; $MarkColors['D'] = $colOuter; $MarkColors['D1'] = $colDepth; $MarkColors['C'] = $colDepth
@@ -409,7 +419,15 @@ $list.Add_DrawColumnHeader({
 })
 function Set-Columns {
     $list.Items.Clear(); $list.Groups.Clear(); $list.Columns.Clear()
-    if ($cmbKind.SelectedIndex -eq 2) {
+    if ($cmbKind.SelectedIndex -eq 3) {
+        # ウェアリング（ピストン用）：d・D・溝幅・D1（D1 は阪上だけ）
+        [void]$list.Columns.Add('呼び番号', 90)
+        [void]$list.Columns.Add('d（公差）', 170)
+        [void]$list.Columns.Add('D（公差）', 150)
+        [void]$list.Columns.Add('G・H（公差）', 130)
+        [void]$list.Columns.Add('D1（公差）', 150)
+        [void]$list.Columns.Add('メーカー', 90)
+    } elseif ($cmbKind.SelectedIndex -eq 2) {
         # ダストシール：D・溝幅・C（バックアップリングは使わない。d は出さない。C＝データの D1Dia、LBH の図では S、DKI はなし）
         [void]$list.Columns.Add('呼び番号', 100)
         [void]$list.Columns.Add('D（公差）', 170)
@@ -449,10 +467,10 @@ $list.Add_SelectedIndexChanged({
 $cmbKind.Add_SelectedIndexChanged({
     Set-Columns
     $cmbUse.Enabled = $cmbKind.SelectedIndex -eq 0
-    $cmbBR.Enabled = $cmbKind.SelectedIndex -ne 2   # ダストシールはバックアップリングを使わない
+    $cmbBR.Enabled = $cmbKind.SelectedIndex -le 1   # ダストシール・ウェアリングはバックアップリングを使わない
     $lblInner.Text = if ($cmbKind.SelectedIndex -eq 2) { '● d ロッド径 [mm]' } else { '● d 溝の内径 [mm]' }
     foreach ($c in @($lblOuter, $txtOuter, $lblWidth, $txtWidth)) { $c.Visible = $cmbKind.SelectedIndex -ne 2 }
-    $script:figProduct = if ($cmbKind.SelectedIndex -eq 1) { 'SKY' } else { '' }
+    $script:figProduct = if ($cmbKind.SelectedIndex -eq 1) { 'SKY' } elseif ($cmbKind.SelectedIndex -eq 3) { 'SW' } else { '' }
     $script:figMark = $null
     $fig.Cursor = if ($cmbKind.SelectedIndex -ge 1) { 'Hand' } else { 'Default' }
     $msg.Text = ''
@@ -495,18 +513,18 @@ $btn.Add_Click({
         if ($name) {
             $inner = $null; $outer = $null; $width = $null
             # 種類を選ばなくても探す：今の種類に結果がなければ、結果のある最初の種類に切り替える
-            $all = Find-AllByName -Name $name -ORingTable $table -PackingTable $ptable -DustTable $dtable -BackupRing (@("None", "One", "Both")[$cmbBR.SelectedIndex])
-            $tot = @($all.ORing.Total, $all.Packing.Total, $all.Dust.Total)
+            $all = Find-AllByName -Name $name -ORingTable $table -PackingTable $ptable -DustTable $dtable -WearTable $wtable -BackupRing (@("None", "One", "Both")[$cmbBR.SelectedIndex])
+            $tot = @($all.ORing.Total, $all.Packing.Total, $all.Dust.Total, $all.Wear.Total)
             if (($tot | Measure-Object -Sum).Sum -eq 0) {
-                $msg.Text = "呼び番号に「$name」を含むものは、Oリング・Uパッキン・ダストシールのどれにもありません。"
+                $msg.Text = "呼び番号に「$name」を含むものは、Oリング・Uパッキン・ダストシール・ウェアリングのどれにもありません。"
                 $script:figMark = $null; $fig.Invalidate()
                 return
             }
             if ($tot[$cmbKind.SelectedIndex] -eq 0) {
-                for ($k = 0; $k -lt 3; $k++) { if ($tot[$k] -gt 0) { $cmbKind.SelectedIndex = $k; break } }
+                for ($k = 0; $k -lt 4; $k++) { if ($tot[$k] -gt 0) { $cmbKind.SelectedIndex = $k; break } }
             }
-            $kindNames = @("Oリング", "Uパッキン", "ダストシール")
-            $others = @(for ($k = 0; $k -lt 3; $k++) { if ($k -ne $cmbKind.SelectedIndex -and $tot[$k] -gt 0) { "$($kindNames[$k]) $($tot[$k]) 件" } })
+            $kindNames = @("Oリング", "Uパッキン", "ダストシール", "ウェアリング")
+            $others = @(for ($k = 0; $k -lt 4; $k++) { if ($k -ne $cmbKind.SelectedIndex -and $tot[$k] -gt 0) { "$($kindNames[$k]) $($tot[$k]) 件" } })
             if ($others.Count) { $script:otherNote = "ほかの種類にもあります：$($others -join "、")（種類を切り替えて［検索］を押すと表示）" }
         } else {
             $inner = Read-Number $txtInner $(if ($cmbKind.SelectedIndex -eq 2) { 'ロッド径' } else { '溝の内径' })
@@ -514,6 +532,43 @@ $btn.Add_Click({
             $width = if ($cmbKind.SelectedIndex -eq 2) { $null } else { Read-Number $txtWidth '溝幅' }
         }
 
+        if ($cmbKind.SelectedIndex -eq 3) {
+            # ウェアリング：製品ごとにグループ表示（溝幅は GA で判定）
+            $result = Find-Packing -GrooveInner $inner -GrooveOuter $outer -GrooveWidth $width -Table $wtable -Products $WearProducts -Label 'ウェアリング' -Name $name
+            $list.Groups.Clear()
+            $groups = @{}; $rank = @{}
+            foreach ($r in $result.Candidates) {
+                if (-not $groups.ContainsKey($r.Product)) {
+                    $n = @($result.Candidates | Where-Object { $_.Product -eq $r.Product }).Count
+                    $groups[$r.Product] = $list.Groups.Add($r.Product, "$($r.Product)（$n 件）")
+                }
+                $i = [int]$rank[$r.Product]; $rank[$r.Product] = $i + 1
+                $item = New-Object System.Windows.Forms.ListViewItem($r.Code)
+                $item.Group = $groups[$r.Product]
+                $wl = if ($r.Product -eq 'WR') { 'H' } else { 'G' }   # 溝幅の記号（図に合わせる）
+                $vD1 = if ($r.DiaD1) { "$($r.DiaD1)（$($r.TolD1)）" } else { '—' }
+                foreach ($v in @("$($r.D1)（$($r.TolInner)）", "$($r.D2)（$($r.TolOuter)）", "$wl $($r.Width)（$($r.TolWidth)）", $vD1, (Get-Maker $r.Product))) {
+                    [void]$item.SubItems.Add([string]$v)
+                }
+                $tv = @(@{ k = 'd'; l = 'd'; v = "$($r.D1)" }, @{ k = 'D'; l = 'D'; v = "$($r.D2)" }, @{ k = 'W'; l = $wl; v = "$($r.Width)" })
+                if ($r.DiaD1) { $tv += @{ k = 'D1'; l = 'D1'; v = "$($r.DiaD1)" } }
+                $item.Tag = @{ Product = $r.Product; Vals = $tv }
+                $item.BackColor = if ($i -eq 0) { RGB '#C8E6C9' } else { RGB '#E3F2FD' }
+                if ($i -eq 0) { $item.Font = New-Object System.Drawing.Font('Yu Gothic UI', 10, [System.Drawing.FontStyle]::Bold) }
+                [void]$list.Items.Add($item)
+            }
+            $lines = @('判定条件：' + ($result.Notes -join ' / '))
+            if ($result.Candidates.Count -eq 0) { $lines += $result.Reasons }
+            else {
+                $lines += Get-CountLine $result "（製品ごとに最大 $MaxResults 件、寸法の差が小さい順）"
+                $lines += $WearSourceNote
+            }
+            $msg.Text = (@($lines) + @($script:otherNote | Where-Object { $_ })) -join "`r`n"
+            $script:figProduct = if ($result.Candidates.Count -gt 0) { $result.Candidates[0].Product } else { 'SW' }
+            $script:figMark = if ($list.Items.Count -gt 0) { $list.Items[0].Tag } else { $null }   # 最初は先頭の結果を図に示す
+            $fig.Invalidate()
+            return
+        }
         if ($cmbKind.SelectedIndex -eq 2) {
             # ダストシール：製品ごとにグループ表示（溝幅は GA で判定）
             $result = Find-Packing -GrooveInner $inner -GrooveOuter $outer -GrooveWidth $width -Table $dtable -Products $DustProducts -Label 'ダストシール' -Name $name

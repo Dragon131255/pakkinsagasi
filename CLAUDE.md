@@ -101,6 +101,19 @@
 - Web版はメーカーごとに色分けする（カード左端の帯・見出しとメーカー欄の札。阪上=青、バルカー=青緑、NOK=赤。Uパッキンも同じ。2026-11-06 ユーザー指示）
 - 図：`images/sdr-rod.png`（阪上製品ページの寸法指示図）、`lbh-rod.png`・`dki-rod.png`（NOK PDF の装着図、右下の注記枠は白で消した）、`dhs-rod.png`（バルカー カタログ p.29）。PDF は WinRT の Windows.Data.Pdf で画像化して切り出し
 
+## ウェアリング（ピストン用）（2026-11-06 追加、ユーザー指示）
+- 「種類」でウェアリングを選ぶ（PowerShell版は SelectedIndex 3）。判定は `Find-Packing`（`-Products $WearProducts -Label 'ウェアリング'`）。入力は d・D・溝幅（GA で判定）。用途・バックアップリングは使わない
+- ユーザーは阪上・バルカー・NOK の ピストン用・ロッド用 を希望したが、各社の資料にあるのはピストン用だけだった（ロッド用は未対応）
+- 対象：阪上 SW・SWA・SWB・SWO、NOK WR 型、バルカー WPL・WPG（`$WearProducts`）
+- サイズ表 `data/wear_ring.csv`（列は sakagami_hydraulic.csv と同じ。Inner＝d（溝底径）、Outer＝D（シリンダ内径）、H＝ウェアリングの幅、GA＝GB＝溝幅、D1Dia＝阪上の表の D1（ピストン外径。NOK・バルカーは空欄）、Backup は空欄）
+  - 出典：阪上 https://www.sakagami-ltd.co.jp/products/wear-rings-and-bearings/<sw|swa|swb|swo> の寸法表（HTML からそのまま取得）／ NOK https://www.edccorp.com.tw/UploadFile/PK/WR.pdf（E-162〜E-164。WR-○○W は SPG・SPGW 用。呼び番号は `WR-18`・`WR-30W` の形）／ バルカー 油圧用パッキン カタログ p.33 WPL・p.34 WPG（呼び番号は `WPL100` の形）
+  - NOK・バルカーは PDF を画像にして読み取り、d = D − 2t で検算した
+- 公差（`$PackingTolerance`）：SW・SWA の d は e7（ISO 286 の `$FitIT7`・`$FitEsE` を追加）。SWO-125 だけ d の公差が違うので `InnerByCode` で持つ。D1 の h8 は D1 の寸法で数値にする（それまで D1 は寸法 0 として計算していた）
+- 一覧の列：呼び番号・d・D・溝幅（WR は H、ほかは G）・D1・メーカー（各公差付き）
+- 図：`images/<製品>-piston.png`（阪上は製品ページの寸法指示図、WR・WPL・WPG はカタログの装着図を切り出し。WR は左上のロゴを白で消した）。枠は d・D・W・D1
+  - PowerShell版の `$FigMarks` は大文字小文字を区別しない表なので、d と D が両方あるウェアリングは `New-MarkTable` で大文字小文字を区別する表にしている
+- 呼び番号でまとめて探すときもウェアリングを含める（`Find-AllByName -WearTable`）
+
 ## 構成
 ```
 pakkinsagasi/

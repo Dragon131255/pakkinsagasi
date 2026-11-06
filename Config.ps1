@@ -77,6 +77,17 @@ $PackingTolerance = @{
                 WidthByD = @(@(50, '+0.5/+0.3'), @(175, '+0.6/+0.4'), @(300, '+0.7/+0.5')) }
     # NOK LBH（E-140 の装着図）
     'LBH'  = @{ Rod = @{ Inner = 'f8'; Outer = '0/-0.2' }; Width = '±0.2'; D1 = '±0.1' }
+    # ---- ウェアリング（data/wear_ring.csv。すべてピストン用）----
+    # 阪上（各製品ページの寸法指示図 2024.12-1）。D1＝表の D1。InnerByCode＝呼び番号ごとに d の公差が違うとき
+    'SW'   = @{ Piston = @{ Inner = 'e7';           Outer = 'H9' }; Width = '±0.1';   D1 = '0/-0.05' }
+    'SWA'  = @{ Piston = @{ Inner = 'e7';           Outer = 'H9' }; Width = '±0.1';   D1 = 'h8' }
+    'SWB'  = @{ Piston = @{ Inner = '+0.07/+0.02';  Outer = 'H9' }; Width = '+0.2/0'; D1 = 'h8' }
+    'SWO'  = @{ Piston = @{ Inner = '0/-0.05';      Outer = 'H9' }; Width = '+0.2/0'; D1 = 'h8'; InnerByCode = @{ 'SWO-125' = '0/-0.08' } }
+    # NOK WR 型（E-162〜E-164 の装着図）。溝幅＝表の H
+    'WR'   = @{ Piston = @{ Inner = '0/-0.05';      Outer = 'H9' }; Width = '+0.1/0' }
+    # バルカー WPL・WPG（カタログ p.33・34 の図）
+    'WPL'  = @{ Piston = @{ Inner = 'h9';           Outer = 'H9' }; Width = '+0.1/0' }
+    'WPG'  = @{ Piston = @{ Inner = 'h9';           Outer = 'H9' }; Width = '+0.1/0' }
 }
 
 # ISO 286（JIS B 0401）の基本公差と f の基礎となる寸法許容差 [µm]
@@ -86,17 +97,24 @@ $FitIT8       = @(14, 18, 22, 27, 33, 39, 46, 54, 63, 72, 81, 89, 97, 110, 125, 
 $FitIT9       = @(25, 30, 36, 43, 52, 62, 74, 87, 100, 115, 130, 140, 155, 175, 200, 230, 260, 310)
 $FitIT10      = @(40, 48, 58, 70, 84, 100, 120, 140, 160, 185, 210, 230, 250, 280, 320, 360, 420, 500)
 $FitEsF       = @(-6, -10, -13, -16, -20, -25, -30, -36, -43, -50, -56, -62, -68, -76, -80, -86, -98, -110)
+# IT7 と e の上の寸法許容差 es（ウェアリングの e7 用）
+$FitIT7       = @(10, 12, 15, 18, 21, 25, 30, 35, 40, 46, 52, 57, 63, 70, 80, 90, 105, 125)
+$FitEsE       = @(-14, -20, -25, -32, -40, -50, -60, -72, -85, -100, -110, -125, -135, -145, -160, -170, -195, -220)
 
 # 検索結果に出す Uパッキンの製品（阪上は一時的に SKY・KY だけにしている）
 # 全製品：'GPY', 'GNY', 'RGY', 'RNY', 'ⓉSGY', 'ⓉSNY', 'SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH'
 $PackingProducts = @('SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH')
 
 # バルカーの U パッキン（出典：バルカー 油圧用パッキン カタログ hydraulic-packing_doc.pdf）。UHP・MLP はピストン用、MLR はロッド用
-$ValquaProducts = @('UHP', 'MLP', 'MLR', 'DHS')
+$ValquaProducts = @('UHP', 'MLP', 'MLR', 'DHS', 'WPL', 'WPG')
 
 # NOK の U パッキン（出典：NOK UPH 型 寸法表 UPH.pdf、edccorp.com.tw 掲載）。ピストン・ロッド両用
-$NokProducts = @('UPH', 'DKI', 'LBH')
+$NokProducts = @('UPH', 'DKI', 'LBH', 'WR')
 
 # ダストシール（ロッド用）。サイズ表は data/dust_seal.csv（列は sakagami_hydraulic.csv と同じ。GA＝GB＝溝幅、Backup は空欄）
 $DustProducts = @('SDR', 'LBH', 'DHS', 'DKI')
-$DustSourceNote = '出典：SDR は阪上製作所の製品ページ、DHS はバルカーの油圧用パッキン カタログ、LBH・DKI は NOK の寸法表。使用条件は各社のカタログで確認してください。'
+# ウェアリング（ピストン用）。サイズ表は data/wear_ring.csv（列は sakagami_hydraulic.csv と同じ。Inner＝d（溝底径）、Outer＝D（シリンダ内径）、
+# H＝ウェアリングの幅、GA＝GB＝溝幅、D1Dia＝阪上の表の D1（ピストン外径）、Backup は空欄）
+$WearProducts = @('SW', 'SWA', 'SWB', 'SWO', 'WR', 'WPL', 'WPG')
+$WearSourceNote = '出典：SW・SWA・SWB・SWO は阪上製作所の製品ページ、WR は NOK の WR 型 寸法表、WPL・WPG はバルカーの油圧用パッキン カタログ。使用条件は各社のカタログで確認してください。'
+$DustSourceNote ='出典：SDR は阪上製作所の製品ページ、DHS はバルカーの油圧用パッキン カタログ、LBH・DKI は NOK の寸法表。使用条件は各社のカタログで確認してください。'

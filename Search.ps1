@@ -239,15 +239,16 @@ function Get-PackingTable {
 function Format-PackingTol {
     param([string]$Spec, [double]$Size)
     $um = { param($v) if ($v -eq 0) { '0' } else { ('{0}{1:0.000}' -f $(if ($v -gt 0) { '+' } else { '-' }), ([math]::Abs($v) / 1000)) } }
-    if ($Spec -match '^([HhfF])(8|9|10)$') {
+    if ($Spec -cmatch '^([Hhfe])(7|8|9|10)$') {
         $i = 0
         while ($i -lt $FitSizeUpper.Count -and $Size -gt $FitSizeUpper[$i]) { $i++ }
         if ($i -ge $FitSizeUpper.Count) { return $Spec }
-        $it = switch ($Matches[2]) { '8' { $FitIT8[$i] } '9' { $FitIT9[$i] } default { $FitIT10[$i] } }
+        $it = switch ($Matches[2]) { '7' { $FitIT7[$i] } '8' { $FitIT8[$i] } '9' { $FitIT9[$i] } default { $FitIT10[$i] } }
         switch -CaseSensitive ($Matches[1]) {
             'H' { $hi = $it;         $lo = 0 }
             'h' { $hi = 0;           $lo = -$it }
             'f' { $hi = $FitEsF[$i]; $lo = $FitEsF[$i] - $it }
+            'e' { $hi = $FitEsE[$i]; $lo = $FitEsE[$i] - $it }
         }
         return "$Spec $(& $um $hi) / $(& $um $lo)"
     }
@@ -265,7 +266,8 @@ function Get-PackingTol {
     if ($t.WidthByCode -and $t.WidthByCode.ContainsKey($Row.Code)) { $w = $t.WidthByCode[$Row.Code][[int]$WithBR] }
     # WidthByD：d の範囲で溝幅の公差が違うとき @(@(d の上限, 公差), ...)（小さい順）
     if ($t.WidthByD) { foreach ($b in $t.WidthByD) { if ($Row.D1 -le $b[0]) { $w = $b[1]; break } } }
-    $d1 = if ($t.D1 -and "$($Row.DiaD1)" -ne '') { Format-PackingTol $t.D1 0 } else { '' }
+    $d1Size = 0.0; [void][double]::TryParse("$($Row.DiaD1)", [ref]$d1Size)   # D1 のはめあい記号（h8 など）は D1 の寸法で決める
+    $d1 = if ($t.D1 -and "$($Row.DiaD1)" -ne '') { Format-PackingTol $t.D1 $d1Size } else { '' }
     $inner = @(); $outer = @()
     foreach ($u in @('Piston', 'Rod')) {
         if (-not $t.ContainsKey($u)) { continue }
@@ -275,6 +277,7 @@ function Get-PackingTol {
     }
     # d の公差はピストン用だけを出す（両用もロッド用は出さず「ピストン」の文字も付けない。ロッド専用の製品はロッド用）
     $innerTol = if ($t.ContainsKey('Piston')) { Format-PackingTol $t.Piston.Inner $Row.D1 } else { $inner -join '／' }
+    if ($t.InnerByCode -and $t.InnerByCode.ContainsKey($Row.Code)) { $innerTol = Format-PackingTol $t.InnerByCode[$Row.Code] $Row.D1 }
     @{ Inner = $innerTol; Outer = $outer -join '／'; Width = Format-PackingTol $w 0; D1 = $d1 }
 }
 
@@ -283,7 +286,7 @@ function Find-Packing {
         [Nullable[double]]$GrooveInner,
         [Nullable[double]]$GrooveOuter,
         [Nullable[double]]$GrooveWidth,
-        [Parameter(Mandatory)][object[]]$Table,
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Table,
         # サイズ表の溝幅は「バックアップリングなし（GA）」と「あり（GB）」の2種類。片側・両側はどちらも GB で判定する
         [ValidateSet('None', 'One', 'Both')][string]$BackupRing = 'None',
         # 検索対象の製品（省略時は Config.ps1 の $PackingProducts）
@@ -373,7 +376,7 @@ function Find-Packing {
 function Find-AllByName {
     param(
         [Parameter(Mandatory)][string]$Name,
-        [object[]]$ORingTable, [object[]]$PackingTable, [object[]]$DustTable,
+        [object[]]$ORingTable, [object[]]$PackingTable, [object[]]$DustTable, [object[]]$WearTable = @(),
         [ValidateSet('None', 'One', 'Both')][string]$BackupRing = 'None'
     )
     $key = ConvertTo-NameKey $Name
@@ -381,6 +384,7 @@ function Find-AllByName {
         ORing   = Find-ORing -Use Static -Table $ORingTable -BackupRing $BackupRing -Name $Name
         Packing = Find-Packing -Table $PackingTable -BackupRing $BackupRing -Name $Name
         Dust    = Find-Packing -Table $DustTable -Products $DustProducts -Label 'ダストシール' -Name $Name
+        Wear    = Find-Packing -Table $WearTable -Products $WearProducts -Label 'ウェアリング' -Name $Name
     }
     $exact = @{}
     foreach ($k in @($all.Keys)) {

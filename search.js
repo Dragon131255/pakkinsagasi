@@ -197,25 +197,38 @@
     'DHS': { Rod: { Inner: 'f8', Outer: '0/-0.2' }, Width: '+0.3/0', D1: '±0.1' },
     'DKI': { Rod: { Inner: 'f8', Outer: 'H8' }, Width: '+0.5/+0.3',
       WidthByD: [[50, '+0.5/+0.3'], [175, '+0.6/+0.4'], [300, '+0.7/+0.5']] },
-    'LBH': { Rod: { Inner: 'f8', Outer: '0/-0.2' }, Width: '±0.2', D1: '±0.1' }
+    'LBH': { Rod: { Inner: 'f8', Outer: '0/-0.2' }, Width: '±0.2', D1: '±0.1' },
+    // ---- ウェアリング（data/wear_ring.csv。すべてピストン用）。InnerByCode：呼び番号ごとに d の公差が違うとき ----
+    'SW': { Piston: { Inner: 'e7', Outer: 'H9' }, Width: '±0.1', D1: '0/-0.05' },
+    'SWA': { Piston: { Inner: 'e7', Outer: 'H9' }, Width: '±0.1', D1: 'h8' },
+    'SWB': { Piston: { Inner: '+0.07/+0.02', Outer: 'H9' }, Width: '+0.2/0', D1: 'h8' },
+    'SWO': { Piston: { Inner: '0/-0.05', Outer: 'H9' }, Width: '+0.2/0', D1: 'h8', InnerByCode: { 'SWO-125': '0/-0.08' } },
+    'WR': { Piston: { Inner: '0/-0.05', Outer: 'H9' }, Width: '+0.1/0' },
+    'WPL': { Piston: { Inner: 'h9', Outer: 'H9' }, Width: '+0.1/0' },
+    'WPG': { Piston: { Inner: 'h9', Outer: 'H9' }, Width: '+0.1/0' }
   };
   var DustProducts = ['SDR', 'LBH', 'DHS', 'DKI'];   // Config.ps1 の $DustProducts と同じ
+  var WearProducts = ['SW', 'SWA', 'SWB', 'SWO', 'WR', 'WPL', 'WPG'];   // Config.ps1 の $WearProducts と同じ
   // ISO 286（JIS B 0401）[µm]：寸法区分の上限 [mm]、IT8、IT9、f の上の寸法許容差
   var FitSizeUpper = [3, 6, 10, 18, 30, 50, 80, 120, 180, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600];
   var FitIT8 = [14, 18, 22, 27, 33, 39, 46, 54, 63, 72, 81, 89, 97, 110, 125, 140, 165, 195];
   var FitIT9 = [25, 30, 36, 43, 52, 62, 74, 87, 100, 115, 130, 140, 155, 175, 200, 230, 260, 310];
   var FitIT10 = [40, 48, 58, 70, 84, 100, 120, 140, 160, 185, 210, 230, 250, 280, 320, 360, 420, 500];
+  // IT7 と e の上の寸法許容差（ウェアリングの e7 用）
+  var FitIT7 = [10, 12, 15, 18, 21, 25, 30, 35, 40, 46, 52, 57, 63, 70, 80, 90, 105, 125];
+  var FitEsE = [-14, -20, -25, -32, -40, -50, -60, -72, -85, -100, -110, -125, -135, -145, -160, -170, -195, -220];
   var FitEsF = [-6, -10, -13, -16, -20, -25, -30, -36, -43, -50, -56, -62, -68, -76, -80, -86, -98, -110];
 
   function formatPackingTol(spec, size) {
     var um = function (v) { return v === 0 ? '0' : (v > 0 ? '+' : '-') + (Math.abs(v) / 1000).toFixed(3); };
-    var m = /^([Hhf])(8|9|10)$/.exec(spec);
+    var m = /^([Hhfe])(7|8|9|10)$/.exec(spec);
     if (m) {
       var i = 0;
       while (i < FitSizeUpper.length && size > FitSizeUpper[i]) i++;
       if (i >= FitSizeUpper.length) return spec;
-      var it = { '8': FitIT8, '9': FitIT9, '10': FitIT10 }[m[2]][i], hi, lo;
-      if (m[1] === 'H') { hi = it; lo = 0; } else if (m[1] === 'h') { hi = 0; lo = -it; } else { hi = FitEsF[i]; lo = FitEsF[i] - it; }
+      var it = { '7': FitIT7, '8': FitIT8, '9': FitIT9, '10': FitIT10 }[m[2]][i], hi, lo;
+      if (m[1] === 'H') { hi = it; lo = 0; } else if (m[1] === 'h') { hi = 0; lo = -it; }
+      else { var es = (m[1] === 'e' ? FitEsE : FitEsF)[i]; hi = es; lo = es - it; }
       return spec + ' ' + um(hi) + ' / ' + um(lo);
     }
     m = /^([+\-]?[\d.]+)\/([+\-]?[\d.]+)$/.exec(spec);
@@ -227,7 +240,7 @@
     if (!t) return { Inner: '—', Outer: '—', Width: '—', D1: '' };
     var w = t.WidthByCode && t.WidthByCode[r.Code] ? t.WidthByCode[r.Code][withBR ? 1 : 0] : t.Width;
     if (t.WidthByD) for (var b = 0; b < t.WidthByD.length; b++) if (r.D1 <= t.WidthByD[b][0]) { w = t.WidthByD[b][1]; break; }
-    var d1 = t.D1 && r.DiaD1 !== '' ? formatPackingTol(t.D1, 0) : '';
+    var d1 = t.D1 && r.DiaD1 !== '' ? formatPackingTol(t.D1, +r.DiaD1 || 0) : '';   // D1 のはめあい記号は D1 の寸法で決める
     var inner = [], outer = [];
     ['Piston', 'Rod'].forEach(function (u) {
       if (!t[u]) return;
@@ -237,6 +250,7 @@
     });
     // d の公差はピストン用だけを出す（両用もロッド用は出さず「ピストン」の文字も付けない。ロッド専用の製品はロッド用）
     var innerTol = t.Piston ? formatPackingTol(t.Piston.Inner, r.D1) : inner.join('／');
+    if (t.InnerByCode && t.InnerByCode[r.Code]) innerTol = formatPackingTol(t.InnerByCode[r.Code], r.D1);
     return { Inner: innerTol, Outer: outer.join('／'), Width: formatPackingTol(w, 0), D1: d1 };
   }
 
@@ -307,20 +321,21 @@
     var all = {
       ORing: findORing({ use: 'Static', backupRing: br, table: opt.oringTable, name: opt.name }),
       Packing: findPacking({ backupRing: br, table: opt.packingTable, name: opt.name }),
-      Dust: findPacking({ table: opt.dustTable, products: DustProducts, label: 'ダストシール', name: opt.name })
+      Dust: findPacking({ table: opt.dustTable, products: DustProducts, label: 'ダストシール', name: opt.name }),
+      Wear: findPacking({ table: opt.wearTable || [], products: WearProducts, label: 'ウェアリング', name: opt.name })
     };
     var exact = {};
     Object.keys(all).forEach(function (k) {
       var prop = k === 'ORing' ? 'Name' : 'Code';
       exact[k] = all[k].Candidates.some(function (c) { return nameKey(c[prop]) === key; });
     });
-    if (exact.ORing || exact.Packing || exact.Dust) {
+    if (exact.ORing || exact.Packing || exact.Dust || exact.Wear) {
       Object.keys(all).forEach(function (k) { if (!exact[k]) { all[k].Candidates = []; all[k].Total = 0; } });
     }
     return all;
   }
 
-  var api = { findAllByName: findAllByName, parseTable: parseTable, findORing: findORing, parsePackingTable: parsePackingTable, findPacking: findPacking, DustProducts: DustProducts, MaxResults: MaxResults };
+  var api = { findAllByName: findAllByName, parseTable: parseTable, findORing: findORing, parsePackingTable: parsePackingTable, findPacking: findPacking, DustProducts: DustProducts, WearProducts: WearProducts, MaxResults: MaxResults };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Pakkin = api;
 })(this);
