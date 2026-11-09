@@ -1,2 +1,3 @@
 @echo off
-start "" powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0main.ps1"
+rem パッキン探し（Web版）をブラウザで開く
+start "" "https://dragon131255.github.io/pakkinsagasi/"

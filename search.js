@@ -1,21 +1,21 @@
-// Web版（index.html）の計算・判定・並べ替え。Search.ps1 / Config.ps1 と同じ内容を JavaScript で書いたもの
-// 判定基準や計算式を変えるときは Config.ps1・Search.ps1 とこのファイルの両方を直す
+// 計算・判定・並べ替えと判定基準の定数（画面は index.html）。計算はこのファイルだけ
+// 判定基準や計算式を変えたら tests/search.test.js も直す
 (function (root) {
   'use strict';
 
-  // ---- Config.ps1 と同じ値 ----
+  // ---- 判定基準（JIS B 2401 の推奨値を元にした初期値。規格本文で要確認） ----
   var Criteria = {
     Dynamic: { SqueezeMin: 8, SqueezeMax: 20, Series: ['P'] },
     Static: { SqueezeMin: 15, SqueezeMax: 30, Series: ['P', 'G'] }
   };
   var FillMax = 85, StretchMin = 0, StretchMax = 5, MaxResults = 2, NameMaxResults = 30;
   var RodSideNote = '※ 軸側の溝（ピストン・軸に溝がある）だけに対応。穴側の溝（ハウジングに溝がある）は未対応';
-  // 記号・空白だけの検索語（比較用の文字が残らない）はエラーにする（Search.ps1 の Assert-NameKey と同じ）
+  // 記号・空白だけの検索語（比較用の文字が残らない）はエラーにする
   function assertNameKey(name) { if (nameKey(name) === '') throw new Error('検索には英数字を1文字以上入力してください。'); }
 
-  // 呼び番号の比較用（Search.ps1 の ConvertTo-NameKey と同じ）：全角→半角、大文字にし、ハイフン・空白・* などを除く
+  // 呼び番号の比較用：全角→半角、大文字にし、ハイフン・空白・* などを除く
   function nameKey(s) { return String(s == null ? '' : s).normalize('NFKC').toUpperCase().replace(/[\s\-_*・－ー]/g, ''); }
-  // 呼び番号が name と完全に一致する行があればそれだけ。なければ name を含む行を 前方一致 → 部分一致、表の順で返す（Select-ByName と同じ）
+  // 呼び番号が name と完全に一致する行があればそれだけ。なければ name を含む行を 前方一致 → 部分一致、表の順で返す
   function selectByName(table, prop, name) {
     var key = nameKey(name);
     var hits = table.map(function (r, i) {
@@ -174,11 +174,11 @@
     };
   }
 
-  // ---- 阪上パッキン（油圧シリンダ用）：Search.ps1 の Find-Packing と同じ ----
-  var PackingDiaTol = 0.5, PackingWidthTol = 0.5;   // Config.ps1 と同じ値
-  var PackingProducts = ['SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH'];   // 検索結果に出す製品（Config.ps1 の $PackingProducts と同じ。阪上は一時的に SKY・KY だけ）
+  // ---- 阪上パッキン（油圧シリンダ用） ----
+  var PackingDiaTol = 0.5, PackingWidthTol = 0.5;   // d・D・溝幅の許容差 [mm]
+  var PackingProducts = ['SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH'];   // 検索結果に出す製品（阪上は一時的に SKY・KY だけ）
 
-  // 溝寸法の公差（Config.ps1 の $PackingTolerance と同じ。出典：阪上製作所の寸法指示図）
+  // 溝寸法の公差（出典：阪上製作所の寸法指示図）
   var PackingTolerance = {
     'GPY': { Piston: { Inner: 'h8', Outer: 'H9' }, Width: '+0.25/0' },
     'GNY': { Rod: { Inner: 'f8', Outer: 'H8' }, Width: '+0.25/0' },
@@ -212,8 +212,8 @@
     'WPL': { Piston: { Inner: 'h9', Outer: 'H9' }, Width: '+0.1/0' },
     'WPG': { Piston: { Inner: 'h9', Outer: 'H9' }, Width: '+0.1/0' }
   };
-  var DustProducts = ['SDR', 'LBH', 'DHS', 'DKI'];   // Config.ps1 の $DustProducts と同じ
-  var WearProducts = ['SW', 'SWA', 'SWB', 'SWO', 'WR', 'WPL', 'WPG'];   // Config.ps1 の $WearProducts と同じ
+  var DustProducts = ['SDR', 'LBH', 'DHS', 'DKI'];   // ダストシールの検索対象
+  var WearProducts = ['SW', 'SWA', 'SWB', 'SWO', 'WR', 'WPL', 'WPG'];   // ウェアリングの検索対象
   // ISO 286（JIS B 0401）[µm]：寸法区分の上限 [mm]、IT8、IT9、f の上の寸法許容差
   var FitSizeUpper = [3, 6, 10, 18, 30, 50, 80, 120, 180, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600];
   var FitIT8 = [14, 18, 22, 27, 33, 39, 46, 54, 63, 72, 81, 89, 97, 110, 125, 140, 165, 195];
@@ -319,7 +319,7 @@
     return { Candidates: candidates, Reasons: reasons, Notes: notes, ByName: byName, Total: total };
   }
 
-  // 呼び番号で、種類（Oリング・Uパッキン・ダストシール）を選ばずにまとめて探す（Search.ps1 の Find-AllByName と同じ）
+  // 呼び番号で、種類（Oリング・Uパッキン・ダストシール）を選ばずにまとめて探す
   // どれかの種類に完全一致があれば、完全一致のない種類の結果は出さない（Total も 0 にする）
   function findAllByName(opt) {
     var key = nameKey(opt.name), br = opt.backupRing || 'None';
@@ -340,7 +340,8 @@
     return all;
   }
 
-  var api = { findAllByName: findAllByName, parseTable: parseTable, findORing: findORing, parsePackingTable: parsePackingTable, findPacking: findPacking, DustProducts: DustProducts, WearProducts: WearProducts, MaxResults: MaxResults };
+  var api = { findAllByName: findAllByName, parseTable: parseTable, findORing: findORing, parsePackingTable: parsePackingTable, findPacking: findPacking, DustProducts: DustProducts, WearProducts: WearProducts, MaxResults: MaxResults,
+    PackingProducts: PackingProducts, NameMaxResults: NameMaxResults, formatPackingTol: formatPackingTol };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Pakkin = api;
 })(this);
