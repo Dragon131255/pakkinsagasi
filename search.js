@@ -9,6 +9,9 @@
     Static: { SqueezeMin: 15, SqueezeMax: 30, Series: ['P', 'G'] }
   };
   var FillMax = 85, StretchMin = 0, StretchMax = 5, MaxResults = 2, NameMaxResults = 30;
+  var RodSideNote = '※ 軸側の溝（ピストン・軸に溝がある）だけに対応。穴側の溝（ハウジングに溝がある）は未対応';
+  // 記号・空白だけの検索語（比較用の文字が残らない）はエラーにする（Search.ps1 の Assert-NameKey と同じ）
+  function assertNameKey(name) { if (nameKey(name) === '') throw new Error('検索には英数字を1文字以上入力してください。'); }
 
   // 呼び番号の比較用（Search.ps1 の ConvertTo-NameKey と同じ）：全角→半角、大文字にし、ハイフン・空白・* などを除く
   function nameKey(s) { return String(s == null ? '' : s).normalize('NFKC').toUpperCase().replace(/[\s\-_*・－ー]/g, ''); }
@@ -55,7 +58,7 @@
     var hasInner = gi != null, hasOuter = go != null, hasWidth = gw != null;
     var brIndex = { None: 0, One: 1, Both: 2 }[opt.backupRing || 'None'];
     var name = (opt.name || '').trim(), byName = !!name, table = opt.table;
-    if (byName) { gi = go = gw = null; hasInner = hasOuter = hasWidth = false; table = selectByName(table, 'Name', name); }
+    if (byName) { assertNameKey(name); gi = go = gw = null; hasInner = hasOuter = hasWidth = false; table = selectByName(table, 'Name', name); }
 
     if (!(hasInner || hasOuter || hasWidth || byName)) throw new Error('溝の内径・外径・溝幅のどれか1つ以上を入力してください。');
     [gi, go, gw].forEach(function (v) {
@@ -69,7 +72,7 @@
     var notes = [];
     if (hasInner) notes.push('内径の伸び ' + StretchMin + '〜' + StretchMax + '%');
     if (hasOuter) {
-      notes.push('つぶし率 0%超（範囲の判定なし）');
+      notes.push('つぶし率 0%超・' + c.SqueezeMax + '% 以下');
       if (!hasInner) notes.push('（溝内径は未入力のため、Oリング内径 d1 にはまる前提で溝深さを計算）');
     }
     if (hasWidth) {
@@ -77,6 +80,7 @@
       if (brIndex > 0) notes.push('（溝幅からバックアップリングの分＝標準溝幅のBRありとBRなしの差を引いて計算）');
       if (!hasOuter) notes.push('（溝外径は未入力のため、つぶし率 ' + mid + '% になる溝深さを仮定）');
     }
+    notes.push(RodSideNote);
 
     var evaluated = [];
     table.forEach(function (r) {
@@ -121,7 +125,8 @@
         StdInner: stdD1, StdOuter: stdD2,
         Depth: h, Squeeze: squeeze, Fill: fill, Stretch: stretch,
         StretchOk: !hasInner || (stretch >= StretchMin && stretch <= StretchMax),
-        SqueezeOk: !hasOuter || squeeze > 0,
+        // つぶし率は 0% 超 かつ 用途ごとの上限以下（下限では絞り込まない）
+        SqueezeOk: !hasOuter || (squeeze > 0 && squeeze <= c.SqueezeMax),
         FillOk: !hasWidth || fill <= FillMax
       });
     });
@@ -155,7 +160,7 @@
       } else {
         fitting.forEach(function (x) {
           var ng = [];
-          if (!x.SqueezeOk) ng.push('つぶし率 ' + f(x.Squeeze, 1) + '%（つぶれないためシールしない）');
+          if (!x.SqueezeOk) ng.push('つぶし率 ' + f(x.Squeeze, 1) + (x.Squeeze <= 0 ? '%（つぶれないためシールしない）' : '%（上限 ' + c.SqueezeMax + '%）'));
           if (!x.FillOk) ng.push('溝充填率 ' + f(x.Fill, 1) + '%（上限 ' + FillMax + '%）');
           reasons.push(x.Name + '：' + ng.join('、'));
         });
@@ -268,7 +273,7 @@
     var gi = opt.inner, go = opt.outer, gw = opt.width;
     var products = opt.products || PackingProducts, table = opt.table;
     var name = (opt.name || '').trim(), byName = !!name;
-    if (byName) { gi = go = gw = null; table = selectByName(table.filter(function (r) { return products.indexOf(r.Product) >= 0; }), 'Code', name); }
+    if (byName) { assertNameKey(name); gi = go = gw = null; table = selectByName(table.filter(function (r) { return products.indexOf(r.Product) >= 0; }), 'Code', name); }
     var hasInner = gi != null, hasOuter = go != null, hasWidth = gw != null;
     if (!(hasInner || hasOuter || hasWidth || byName)) throw new Error('溝の内径・外径・溝幅のどれか1つ以上を入力してください。');
     [gi, go, gw].forEach(function (v) {

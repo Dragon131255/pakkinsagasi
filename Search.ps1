@@ -7,6 +7,11 @@ function ConvertTo-NameKey([string]$s) {
     ($s.Normalize([Text.NormalizationForm]::FormKC).ToUpperInvariant()) -replace '[\s\-_*・－ー]', ''
 }
 
+# 記号・空白だけの検索語（比較用の文字が残らない）はエラーにする（全件に一致してしまうため）
+function Assert-NameKey([string]$Name) {
+    if ((ConvertTo-NameKey $Name) -eq '') { throw '検索には英数字を1文字以上入力してください。' }
+}
+
 # 呼び番号が $Name と完全に一致する行があればそれだけを返す。なければ $Name を含む行を 前方一致 → 部分一致、表の順で返す
 function Select-ByName {
     param([object[]]$Table, [string]$Property, [string]$Name)
@@ -53,6 +58,7 @@ function Find-ORing {
 
     $byName = -not [string]::IsNullOrWhiteSpace($Name)
     if ($byName) {
+        Assert-NameKey $Name
         $GrooveInner = $null; $GrooveOuter = $null; $GrooveWidth = $null
         $Table = Select-ByName $Table 'Name' $Name
     }
@@ -78,7 +84,7 @@ function Find-ORing {
     $notes = @()
     if ($hasInner) { $notes += "内径の伸び $StretchMin〜$StretchMax%" }
     if ($hasOuter) {
-        $notes += 'つぶし率 0%超（範囲の判定なし）'
+        $notes += "つぶし率 0%超・$($c.SqueezeMax)% 以下"
         if (-not $hasInner) { $notes += '（溝内径は未入力のため、Oリング内径 d1 にはまる前提で溝深さを計算）' }
     }
     if ($hasWidth) {
@@ -86,6 +92,7 @@ function Find-ORing {
         if ($brIndex -gt 0) { $notes += '（溝幅からバックアップリングの分＝標準溝幅のBRありとBRなしの差を引いて計算）' }
         if (-not $hasOuter) { $notes += "（溝外径は未入力のため、つぶし率 $mid% になる溝深さを仮定）" }
     }
+    $notes += $RodSideNote
 
     $evaluated = foreach ($r in $Table) {
         if (-not $byName -and $c.Series -notcontains $r.Series) { continue }
@@ -144,8 +151,8 @@ function Find-ORing {
             Fill      = $fill
             Stretch   = $stretch
             StretchOk = (-not $hasInner) -or ($stretch -ge $StretchMin -and $stretch -le $StretchMax)
-            # つぶし率の範囲判定はしない。つぶれない（0%以下＝シールしない）ものだけ除く
-            SqueezeOk = (-not $hasOuter) -or ($squeeze -gt 0)
+            # つぶし率は 0% 超（つぶれないとシールしない）かつ 用途ごとの上限以下。下限（SqueezeMin）では絞り込まない
+            SqueezeOk = (-not $hasOuter) -or ($squeeze -gt 0 -and $squeeze -le $c.SqueezeMax)
             FillOk    = (-not $hasWidth) -or ($fill -le $FillMax)
         }
     }
@@ -187,7 +194,8 @@ function Find-ORing {
             foreach ($f in $fitting) {
                 $ng = @()
                 if (-not $f.SqueezeOk) {
-                    $ng += ('つぶし率 {0:N1}%（つぶれないためシールしない）' -f $f.Squeeze)
+                    if ($f.Squeeze -le 0) { $ng += 'つぶし率 {0:N1}%（つぶれないためシールしない）' -f $f.Squeeze }
+                    else { $ng += 'つぶし率 {0:N1}%（上限 {1}%）' -f $f.Squeeze, $c.SqueezeMax }
                 }
                 if (-not $f.FillOk) {
                     $ng += ('溝充填率 {0:N1}%（上限 {1}%）' -f $f.Fill, $FillMax)
@@ -298,6 +306,7 @@ function Find-Packing {
     )
     $byName = -not [string]::IsNullOrWhiteSpace($Name)
     if ($byName) {
+        Assert-NameKey $Name
         $GrooveInner = $null; $GrooveOuter = $null; $GrooveWidth = $null
         $Table = Select-ByName @($Table | Where-Object { $Products -contains $_.Product }) 'Code' $Name
     }

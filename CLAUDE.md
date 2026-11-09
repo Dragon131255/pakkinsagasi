@@ -24,6 +24,7 @@
 - 呼び番号で探す（2026-11-06 追加、ユーザー指示。Oリング・Uパッキン・ダストシールとも、Web版・PowerShell版とも）
   - 入力欄の名前は「検索」（2026-11-06 ユーザー指示）。この欄に入れると寸法（と Oリングの用途）を使わず、呼び番号にその文字を含むものを出す（Find-ORing / Find-Packing の `-Name`、search.js の `name`）
   - 比較は全角→半角・大文字にし、ハイフン・空白・* などを除いて行う（`ConvertTo-NameKey` / `nameKey`。例 `sky40` で SKY-40）
+  - 除いたあとに文字が残らない検索語（`-` だけなど）はエラー（`Assert-NameKey` / `assertNameKey`。全件に一致してしまうため）
   - 完全に一致するものがあればそれだけを出す（例 `P20` で P20 だけ。2026-11-06 ユーザー指示）。ないときだけ、含むものを 前方一致 → 部分一致、同じなら表の順で出す。最大 `$NameMaxResults`（30）件。結果に `ByName`・`Total`（全件数）を付ける
   - Oリングは用途に関係なく P・G 両系列、Uパッキン・ダストシールは検索対象の製品（`$PackingProducts`・`$DustProducts`）だけ
   - 「検索」欄は入力欄の一番上。種類を選ばなくても全種類から探す（2026-11-06 ユーザー指示）。`Find-AllByName` / `findAllByName` で3種類をまとめて探し、どれかの種類に完全一致があれば完全一致のない種類は出さない
@@ -43,7 +44,8 @@
 - 内径の伸び = (溝内径 − d1) / d1 × 100 [%]（Oリングを溝内径にはめる前提）
 - 判定基準は JIS B 2401 の推奨値を使い、`Config.ps1` に定数でまとめる。値はコードに直接書かない
   - 初期値（規格本文で要確認）：
-    - つぶし率：運動用 8〜20%、固定用 15〜30%（**絞り込みには使わない**。並び順の基準と溝深さの仮定にだけ使う。つぶし率 0% 以下は除く）
+    - つぶし率：運動用 8〜20%、固定用 15〜30%。**上限（SqueezeMax）を超えるものと 0% 以下は除く**（上限での絞り込みは 2026-11-09 ユーザー指示）。下限では絞り込まない。範囲の中央は並び順の基準と溝深さの仮定に使う
+- 計算は軸側の溝（ピストン・軸に溝がある）だけ。穴側の溝は未対応で、判定条件に `$RodSideNote`（search.js も同じ文）を必ず出す
     - 溝充填率：85% 以下
     - 内径の伸び：0〜5%
 
@@ -123,13 +125,18 @@ pakkinsagasi/
 ├─ Config.ps1       # 判定基準の定数
 ├─ index.html       # Web版の画面（スマホ用。GitHub Pages で公開）
 ├─ search.js        # Web版の計算（Search.ps1 + Config.ps1 を JavaScript にしたもの）
-├─ manifest.webmanifest, sw.js, icon-*.png, apple-touch-icon.png  # ホーム画面に追加する用（sw.js は通信優先、圏外時のみキャッシュ）
+├─ manifest.webmanifest, sw.js, icon-*.png, apple-touch-icon.png  # ホーム画面に追加する用（sw.js は通信優先、圏外時のみキャッシュ。正常な応答だけ保存。公開ファイルを変えたら CACHE の版を上げる）
 ├─ data/
 │  ├─ oring_jis_b2401.csv
 │  └─ sakagami_hydraulic.csv   # Uパッキン（油圧）のサイズ表
 └─ tests/
    └─ Search.Tests.ps1
 ```
+
+## 公開
+- 社内向け。公開先は https://dragon131255.github.io/pakkinsagasi/ （このリポジトリの main を GitHub Pages で公開）
+- 旧 pakkinsagasi-web リポジトリは 2026-11-09 に Pages 停止・アーカイブ済み
+- 画面に「検索結果は参考値」の注意書きを出す（Web版は結果の下、PowerShell版は見出しの帯）
 
 ## 開発ルール
 - 計算処理（Search.ps1）と画面（main.ps1）を分ける。計算はテストで確認できるようにする

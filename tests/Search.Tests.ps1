@@ -57,6 +57,29 @@ Describe 'Find-ORing' {
         @($r.Candidates | Where-Object { $_.Series -eq 'G' })[0].Name | Should Be 'G300'
     }
 
+    It 'つぶし率の上限：溝深さ 0.1mm（P20 でつぶし率 95.8%）は候補に出ず、理由に上限を出す' {
+        $r = Find-ORing -GrooveInner 20 -GrooveOuter 20.2 -Use Dynamic -Table $table
+        $r.Candidates.Count | Should Be 0
+        ($r.Reasons -join '') -match '上限 20%' | Should Be $true
+    }
+
+    It 'つぶし率の上限：固定用は 30% まで（G25 の溝深さ 2.2mm＝29.0% は出る、2.1mm＝32.3% は出ない）' {
+        $ok = Find-ORing -GrooveInner 25 -GrooveOuter 29.4 -Use Static -Table $table
+        @($ok.Candidates | Where-Object { $_.Name -eq 'G25' }).Count | Should Be 1
+        $ng = Find-ORing -GrooveInner 25 -GrooveOuter 29.2 -Use Static -Table $table
+        @($ng.Candidates | Where-Object { $_.Name -eq 'G25' }).Count | Should Be 0
+    }
+
+    It '判定条件に、穴側の溝は未対応と出す' {
+        $r = Find-ORing -GrooveInner 25 -Use Static -Table $table
+        ($r.Notes -join '') -match '穴側の溝.*未対応' | Should Be $true
+    }
+
+    It '記号だけの検索語はエラー' {
+        { Find-ORing -Use Static -Table $table -Name '-' } | Should Throw
+        { Find-Packing -Table @() -Name '* ' } | Should Throw
+    }
+
     It '溝幅だけ：充填率 85% 以下の候補が出る' {
         $r = Find-ORing -GrooveWidth 4.1 -Use Static -Table $table
         $r.Candidates.Count -gt 0 | Should Be $true

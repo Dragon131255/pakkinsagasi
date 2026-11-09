@@ -45,6 +45,7 @@
   .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   button { background: var(--main); color: #fff; border: 0; border-radius: 6px; padding: 12px 32px; font-size: 16px; font-weight: bold; }
   .hint { color: var(--sub); font-size: 13px; }
+  .disclaimer { margin-top: 12px; }
   svg { width: 100%; height: auto; display: block; }
   #msg { white-space: pre-wrap; font-size: 14px; line-height: 1.6; }
   #msg.error { color: var(--err); font-weight: bold; }
@@ -150,6 +151,7 @@
   <div class="card">
     <div id="msg">寸法を入力して［検索］を押してください。</div>
     <div id="results"></div>
+    <div class="hint disclaimer">※ 検索結果は参考値です。採用前に、必ず各メーカーのカタログ・JIS 規格で寸法と公差を確認してください。</div>
   </div>
 </main>
 <script src="search.js"></script>

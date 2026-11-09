@@ -36,7 +36,7 @@ if (Test-Path $iconPath) { $form.Icon = New-Object System.Drawing.Icon $iconPath
 
 # 見出しの帯
 $header = New-Object System.Windows.Forms.Label
-$header.Text = '  ◎ パッキン探し　─　Oリング・油圧パッキン選定'
+$header.Text = '  ◎ パッキン探し　─　Oリング・油圧パッキン選定　※結果は参考値です'
 $header.Dock = 'Top'
 $header.Height = 44
 $header.TextAlign = 'MiddleLeft'
