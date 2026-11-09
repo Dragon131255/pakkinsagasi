@@ -248,19 +248,14 @@ test.describe('出典と照合済み', () => {
   test.it('すべての行に出典がある', () => {
     for (const t of [table, ptable, dtable, wtable]) assert.equal(t.filter((r) => !r.Source).length, 0);
   });
-  test.it('阪上・バルカーは照合済み、NOK と Oリング（JIS）は未照合', () => {
-    const verified = (t, p) => t.filter((r) => r.Product === p).every((r) => r.Verified === '2026-11-09');
-    for (const p of ['SKY', 'KY', 'GPY', 'UHP', 'MLP', 'MLR']) assert.ok(verified(ptable, p), p);
-    for (const p of ['SDR', 'DHS']) assert.ok(verified(dtable, p), p);
-    for (const p of ['SW', 'SWA', 'SWB', 'SWO', 'WPL', 'WPG']) assert.ok(verified(wtable, p), p);
-    assert.equal(ptable.filter((r) => r.Product === 'UPH' && r.Verified).length, 0);
-    assert.equal(table.filter((r) => r.Verified).length, 0);
+  test.it('すべての行が照合済み（2026-11-09）', () => {
+    for (const t of [table, ptable, dtable, wtable]) assert.equal(t.filter((r) => r.Verified !== '2026-11-09').length, 0);
   });
   test.it('検索結果に出典と照合日を渡す', () => {
     const c = P.findPacking({ table: ptable, name: 'sky40' }).Candidates[0];
     assert.equal(c.Verified, '2026-11-09');
     assert.match(c.Source, /sakagami/);
-    assert.equal(P.findORing({ use: 'Static', table, name: 'P20' }).Candidates[0].Verified, '');
+    assert.equal(P.findORing({ use: 'Static', table, name: 'P20' }).Candidates[0].Verified, '2026-11-09');
   });
 });
 

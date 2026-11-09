@@ -3,7 +3,7 @@
 (function (root) {
   'use strict';
 
-  // ---- 判定基準（JIS B 2401 の推奨値を元にした初期値。規格本文で要確認） ----
+  // ---- 判定基準（JIS B 2401 の推奨値。2026-11-09 にユーザーが照合済み） ----
   var Criteria = {
     Dynamic: { SqueezeMin: 8, SqueezeMax: 20, Series: ['P'] },
     Static: { SqueezeMin: 15, SqueezeMax: 30, Series: ['P', 'G'] }
