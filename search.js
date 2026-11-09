@@ -47,7 +47,7 @@
     return lines.map(function (line) {
       var c = line.split(','), o = {};
       head.forEach(function (h, i) { o[h.trim()] = (c[i] || '').trim(); });
-      return { Series: o.Series, Name: o.Name, D1: +o.D1, D2: +o.D2 };
+      return { Series: o.Series, Name: o.Name, D1: +o.D1, D2: +o.D2, Source: o.Source || '', Verified: o.Verified || '' };
     });
   }
 
@@ -117,7 +117,7 @@
       }
 
       evaluated.push({
-        Series: r.Series, Name: r.Name, D1: r.D1, D2: r.D2,
+        Series: r.Series, Name: r.Name, D1: r.D1, D2: r.D2, Source: r.Source || '', Verified: r.Verified || '',
         TolInner: tol != null ? '0 / -' + f(tol, 2) : '—',
         TolOuter: tol != null ? '+' + f(tol, 2) + ' / 0' : '—',
         TolWidth: '+' + f(GrooveWidthTolerance, 2) + ' / 0',
@@ -265,7 +265,7 @@
     return lines.map(function (line) {
       var c = line.split(','), o = {};
       head.forEach(function (h, i) { o[h.trim()] = (c[i] || '').trim(); });
-      return { Product: o.Product, Use: o.Use, Code: o.Code, D1: +o.Inner, D2: +o.Outer, H: o.H, GA: +o.GA, GB: +o.GB, Backup: o.Backup, DiaD1: o.D1Dia || '' };
+      return { Product: o.Product, Use: o.Use, Code: o.Code, D1: +o.Inner, D2: +o.Outer, H: o.H, GA: +o.GA, GB: +o.GB, Backup: o.Backup, DiaD1: o.D1Dia || '', Source: o.Source || '', Verified: o.Verified || '' };
     });
   }
 
@@ -300,7 +300,7 @@
       var tol = getPackingTol(r, withBR);
       matched.push({ Product: r.Product, Use: r.Use, Code: r.Code, D1: r.D1, D2: r.D2, DiaD1: r.DiaD1, H: r.H, Width: w,
         TolInner: tol.Inner, TolOuter: tol.Outer, TolWidth: tol.Width, TolD1: tol.D1,
-        Backup: withBR ? r.Backup : '', Deviation: dev, Order: i });
+        Backup: withBR ? r.Backup : '', Source: r.Source || '', Verified: r.Verified || '', Deviation: dev, Order: i });
     });
 
     var byDev = function (a, b) { return a.Deviation - b.Deviation || a.Order - b.Order; };

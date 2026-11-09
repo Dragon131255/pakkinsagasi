@@ -54,6 +54,7 @@
   .ring.top { background: var(--top); border-color: #A5D6A7; }
   .ring.alt { background: var(--alt); }
   .ring .name { font-weight: bold; font-size: 17px; }
+  .unv { display: inline-block; margin-left: 8px; padding: 0 6px; border: 1px solid var(--err); border-radius: 4px; color: var(--err); font-size: 12px; font-weight: bold; vertical-align: middle; }
   .ring .name small { font-weight: normal; color: var(--sub); font-size: 13px; margin-left: 8px; }
   .ring dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 6px 0 0; font-size: 14px; }
   .ring dt { color: var(--sub); }
@@ -151,7 +152,7 @@
   <div class="card">
     <div id="msg">寸法を入力して［検索］を押してください。</div>
     <div id="results"></div>
-    <div class="hint disclaimer">※ 検索結果は参考値です。採用前に、必ず各メーカーのカタログ・JIS 規格で寸法と公差を確認してください。</div>
+    <div class="hint disclaimer">※ 検索結果は参考値です。採用前に、必ず各メーカーのカタログ・JIS 規格で寸法と公差を確認してください。「未照合」の札は、出典の原本との照合がまだのデータです。</div>
   </div>
 </main>
 <script src="search.js"></script>
@@ -344,6 +345,8 @@
   function showError(text) { var m = $('msg'); m.className = 'error'; m.textContent = text; $('results').innerHTML = ''; markOring(null); markFig(null); }
   // '{0:0.0#}' と同じ：小数1〜2桁
   function fmt(v) { return v == null ? '—' : v.toFixed(2).replace(/0$/, ''); }
+  // 出典との照合がまだのデータには「未照合」の札を付ける（Verified が空）
+  function unverified(r) { return r.Verified ? '' : '<span class="unv" title="出典：' + esc(r.Source || '不明') + '">未照合</span>'; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   // 件数の行。呼び番号で探したときは全件数と表示した件数を出す
@@ -365,7 +368,7 @@
       var dv = [{ k: 'D', l: 'D', v: withTol(r.D2, r.TolOuter) }, { k: 'W', l: W_LABEL[r.Product] || '溝幅', v: withTol(r.Width, r.TolWidth) }];
       if (r.DiaD1 && C_LABEL[r.Product]) dv.push({ k: 'C', l: C_LABEL[r.Product], v: withTol(r.DiaD1, r.TolD1) });
       dh += '<div class="ring pk ' + mkClass(r.Product) + (di === 0 ? ' top' : ' alt') + '" data-product="' + esc(r.Product) + '" data-vals="' + esc(JSON.stringify(dv)) + '">'
-        + '<div class="name">' + esc(r.Code) + '<small>ロッド用</small></div><dl>'
+        + '<div class="name">' + esc(r.Code) + '<small>ロッド用</small>' + unverified(r) + '</div><dl>'
         + '<dt class="cD">D</dt><dd><b>' + r.D2 + '</b>' + tolHtml(r.TolOuter) + '</dd>'
         + '<dt class="cW">' + (W_LABEL[r.Product] || '溝幅') + '</dt><dd><b>' + r.Width + '</b>' + tolHtml(r.TolWidth) + '</dd>'
         + (r.DiaD1 && C_LABEL[r.Product] ? '<dt class="cC">' + C_LABEL[r.Product] + '</dt><dd><b>' + esc(r.DiaD1) + '</b>' + tolHtml(r.TolD1) + '</dd>' : '')
@@ -386,7 +389,7 @@
       var v = [{ k: 'd', l: 'd', v: withTol(r.D1, r.TolInner) }, { k: 'D', l: 'D', v: withTol(r.D2, r.TolOuter) }, { k: 'W', l: wl, v: withTol(r.Width, r.TolWidth) }];
       if (r.DiaD1) v.push({ k: 'D1', l: 'D1', v: withTol(r.DiaD1, r.TolD1) });
       h += '<div class="ring pk ' + mkClass(r.Product) + (idx === 0 ? ' top' : ' alt') + '" data-product="' + esc(r.Product) + '" data-vals="' + esc(JSON.stringify(v)) + '">'
-        + '<div class="name">' + esc(r.Code) + '<small>ピストン用</small></div><dl>'
+        + '<div class="name">' + esc(r.Code) + '<small>ピストン用</small>' + unverified(r) + '</div><dl>'
         + '<dt class="cd">d</dt><dd><b>' + r.D1 + '</b>' + tolHtml(r.TolInner) + '</dd>'
         + '<dt class="cD">D</dt><dd><b>' + r.D2 + '</b>' + tolHtml(r.TolOuter) + '</dd>'
         + '<dt class="cW">' + wl + '</dt><dd><b>' + r.Width + '</b>' + tolHtml(r.TolWidth) + '</dd>'
@@ -411,7 +414,7 @@
       if (r.DiaD1) pv.push({ k: 'D1', l: 'D1', v: withTol(r.DiaD1, r.TolD1) });
       pv.push({ k: wk, l: wl, v: withTol(r.Width, r.TolWidth) });
       ph += '<div class="ring pk ' + mkClass(r.Product) + (idx === 0 ? ' top' : ' alt') + '" data-product="' + esc(r.Product) + '" data-vals="' + esc(JSON.stringify(pv)) + '">'
-        + '<div class="name">' + esc(r.Code) + '<small>' + useName[r.Use] + '</small></div><dl>'
+        + '<div class="name">' + esc(r.Code) + '<small>' + useName[r.Use] + '</small>' + unverified(r) + '</div><dl>'
         + '<dt class="cd">溝内径 d</dt><dd><b>' + r.D1 + '</b>' + tolHtml(r.TolInner) + '</dd>'
         + '<dt class="cC">D1</dt><dd>' + (r.DiaD1 ? '<b>' + r.DiaD1 + '</b>' + tolHtml(r.TolD1) : '—') + '</dd>'
         + '<dt class="cW">' + wl + '</dt><dd><b>' + r.Width + '</b>' + tolHtml(r.TolWidth) + '</dd>'
@@ -431,7 +434,7 @@
       list.forEach(function (r, i) {
         var ov = [{ k: 'd', l: 'd', v: withTol(fmt(r.StdInner), r.TolInner) }, { k: 'D', l: 'D', v: withTol(fmt(r.StdOuter), r.TolOuter) }, { k: 'W', l: 'G', v: withTol(fmt(r.StdWidth), r.TolWidth) }];
         html += '<div class="ring or' + (i === 0 ? ' top' : i % 2 ? ' alt' : '') + '" data-name="' + esc(r.Name) + '" data-vals="' + esc(JSON.stringify(ov)) + '">'
-          + '<div class="name">' + esc(r.Name) + '<small>線径 d2 ' + r.D2.toFixed(1) + ' / 内径 d1 ' + r.D1.toFixed(1) + '</small></div><dl>'
+          + '<div class="name">' + esc(r.Name) + '<small>線径 d2 ' + r.D2.toFixed(1) + ' / 内径 d1 ' + r.D1.toFixed(1) + '</small>' + unverified(r) + '</div><dl>'
           + '<dt class="cd">溝内径 d</dt><dd>' + fmt(r.StdInner) + '（' + esc(r.TolInner) + '）</dd>'
           + '<dt class="cD">溝外径 D</dt><dd>' + fmt(r.StdOuter) + '（' + esc(r.TolOuter) + '）</dd>'
           + '<dt class="cW">溝幅 G</dt><dd>' + fmt(r.StdWidth) + '（' + esc(r.TolWidth) + '）</dd>'
