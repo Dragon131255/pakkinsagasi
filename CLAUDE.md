@@ -124,7 +124,7 @@
 - サイズ表 `data/trelleborg.csv`（列は sakagami_hydraulic.csv と同じ。Inner＝小さい方の径（ピストンは溝径 d1/d2、ロッドはロッド径 dN）、Outer＝大きい方の径（ピストンはボア径 DN、ロッドは溝径 D1/D3）、GA＝GB＝溝幅 L1/L2/L3、H＝Oリングのサイズ（WRM は Polypac 品番、SLY-P は厚さ W）、D1Dia＝WRM の D4、Code＝TSS 品番（材質コードなし））
   - 出典：Hydraulic Seals Catalog (Metric) Edition October 2026（https://www.trelleborg.com/seals/-/media/tss-media-repository/tss_website/pdf-and-other-literature/catalogs/hydraulic_complete_gb_en.pdf）の Table 83・104・13・48・146・170・190。`pdftotext -table` で読み取り、品番に入っている径（×10、X 付きは ×1）と表の径が全行一致することを確認（テストでも確認）。カタログで重複していた RG4305700 の1行は除いた
   - TEX2 の * 印（ISO 6195 Type D の溝）は Source の末尾に書いた
-  - 全行 `Verified` は空（未照合の札が出る）。原本との照合はまだ
+  - 2026-11-10 にユーザーが原本と照合済み（全行 `Verified` に日付）
 - 公差（`PackingTolerance`）：カタログの表の見出しどおり。ロッド径はカタログでは f8/h9 だが f8 で数値にする
 - Web版：結果カードの記号は各製品の装着図に合わせる（index.html の `TB`）。メーカー色は紫（`mk-tb`）
 - 図：`images/<製品キー小文字>-piston.png`／`-rod.png`（カタログの Installation Drawing を切り出し）。枠は `FIG_MARKS`
