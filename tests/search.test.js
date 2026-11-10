@@ -282,3 +282,39 @@ test.describe('findPacking（ウェアリング）', () => {
     assert.equal(a.Packing.Total, 0);
   });
 });
+
+// ---- 海外（トレルボルグ）：data/trelleborg.csv ----
+const ttable = P.parsePackingTable(read('trelleborg.csv'));
+test.describe('海外（トレルボルグ）', () => {
+  const tb = (o) => P.findPacking(Object.assign({ table: ttable, products: P.TrelleborgProducts.all, label: 'トレルボルグ' }, o));
+  test.it('7製品・1100サイズを読み込む（品番の寸法と表の寸法が合う）', () => {
+    assert.equal(ttable.length, 1100);
+    assert.deepEqual([...new Set(ttable.map((r) => r.Product))], ['TGR-P', 'TSS2K-P', 'TSS2K-R', 'TGR-R', 'TEX2', 'WRM', 'SLY-P']);
+    ttable.forEach((r) => {
+      const key = /X\d{4}$/.test(r.Code) ? +r.Code.slice(-4) : +r.Code.slice(-5) / 10;
+      assert.ok(Math.abs(key - (r.Use === 'Piston' ? r.D2 : r.D1)) < 0.1, r.Code);
+      assert.ok(r.D1 < r.D2, r.Code);
+    });
+  });
+  test.it('ピストンシール：DN 80・d1 64.5・L1 6.3 で PG4400800', () => {
+    const r = tb({ inner: 64.5, outer: 80, width: 6.3, products: P.TrelleborgProducts.piston });
+    assert.equal(r.Candidates[0].Code, 'PG4400800');
+    assert.equal(r.Candidates[0].TolOuter, 'H9 +0.074 / 0');
+    assert.equal(r.Candidates[0].TolWidth, '+0.2 / 0');
+  });
+  test.it('ロッドシール：dN 40・D1 55.1・L1 6.3 で RSK300400', () => {
+    const r = tb({ inner: 40, outer: 55.1, width: 6.3, products: P.TrelleborgProducts.rod });
+    assert.ok(codes(r).includes('RSK300400'));
+    assert.ok(r.Candidates.every((c) => ['TSS2K-R', 'TGR-R'].includes(c.Product)));
+  });
+  test.it('スクレーパー WRM は D4 を持つ', () => {
+    const c = tb({ name: 'WAP000400' }).Candidates[0];
+    assert.equal(c.DiaD1, '43');
+    assert.equal(c.TolD1, '+0.2 / 0');
+  });
+  test.it('呼び番号でまとめて探すとトレルボルグも出る', () => {
+    const a = P.findAllByName({ name: 'GP6901000', oringTable: table, packingTable: ptable, dustTable: dtable, wearTable: wtable, tbTable: ttable });
+    assert.equal(a.Trelleborg.Candidates[0].Code, 'GP6901000');
+    assert.equal(a.Trelleborg.Candidates[0].D2, 100);
+  });
+});

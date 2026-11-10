@@ -210,8 +210,20 @@
     'SWO': { Piston: { Inner: '0/-0.05', Outer: 'H9' }, Width: '+0.2/0', D1: 'h8', InnerByCode: { 'SWO-125': '0/-0.08' } },
     'WR': { Piston: { Inner: '0/-0.05', Outer: 'H9' }, Width: '+0.1/0' },
     'WPL': { Piston: { Inner: 'h9', Outer: 'H9' }, Width: '+0.1/0' },
-    'WPG': { Piston: { Inner: 'h9', Outer: 'H9' }, Width: '+0.1/0' }
+    'WPG': { Piston: { Inner: 'h9', Outer: 'H9' }, Width: '+0.1/0' },
+    // ---- 海外：トレルボルグ（data/trelleborg.csv。出典 Hydraulic Seals Catalog (Metric) 2026年10月版）----
+    // ロッド径の公差はカタログでは f8/h9。ここでは f8 で数値にする
+    'TGR-P': { Piston: { Inner: 'h9', Outer: 'H9' }, Width: '+0.2/0' },
+    'TSS2K-P': { Piston: { Inner: 'h9', Outer: 'H9' }, Width: '+0.2/0' },
+    'TSS2K-R': { Rod: { Inner: 'f8', Outer: 'H9' }, Width: '+0.2/0' },
+    'TGR-R': { Rod: { Inner: 'f8', Outer: 'H9' }, Width: '+0.2/0' },
+    'TEX2': { Rod: { Inner: 'f8', Outer: 'H9' }, Width: '+0.2/0' },
+    'WRM': { Rod: { Inner: 'f8', Outer: 'H9' }, Width: '+0.2/0', D1: '+0.2/0' },
+    'SLY-P': { Piston: { Inner: 'h8', Outer: 'H9' }, Width: '+0.2/0' }
   };
+  // 海外（トレルボルグ）の種類ごとの検索対象。all は「シール（すべて）」
+  var TrelleborgProducts = { piston: ['TGR-P', 'TSS2K-P'], rod: ['TSS2K-R', 'TGR-R'], scraper: ['TEX2', 'WRM'], wear: ['SLY-P'] };
+  TrelleborgProducts.all = [].concat(TrelleborgProducts.piston, TrelleborgProducts.rod, TrelleborgProducts.scraper, TrelleborgProducts.wear);
   var DustProducts = ['SDR', 'LBH', 'DHS', 'DKI'];   // ダストシールの検索対象
   var WearProducts = ['SW', 'SWA', 'SWB', 'SWO', 'WR', 'WPL', 'WPG'];   // ウェアリングの検索対象
   // ISO 286（JIS B 0401）[µm]：寸法区分の上限 [mm]、IT8、IT9、f の上の寸法許容差
@@ -327,21 +339,22 @@
       ORing: findORing({ use: 'Static', backupRing: br, table: opt.oringTable, name: opt.name }),
       Packing: findPacking({ backupRing: br, table: opt.packingTable, name: opt.name }),
       Dust: findPacking({ table: opt.dustTable, products: DustProducts, label: 'ダストシール', name: opt.name }),
-      Wear: findPacking({ table: opt.wearTable || [], products: WearProducts, label: 'ウェアリング', name: opt.name })
+      Wear: findPacking({ table: opt.wearTable || [], products: WearProducts, label: 'ウェアリング', name: opt.name }),
+      Trelleborg: findPacking({ table: opt.tbTable || [], products: TrelleborgProducts.all, label: 'トレルボルグの製品', name: opt.name })
     };
     var exact = {};
     Object.keys(all).forEach(function (k) {
       var prop = k === 'ORing' ? 'Name' : 'Code';
       exact[k] = all[k].Candidates.some(function (c) { return nameKey(c[prop]) === key; });
     });
-    if (exact.ORing || exact.Packing || exact.Dust || exact.Wear) {
+    if (Object.keys(exact).some(function (k) { return exact[k]; })) {
       Object.keys(all).forEach(function (k) { if (!exact[k]) { all[k].Candidates = []; all[k].Total = 0; } });
     }
     return all;
   }
 
   var api = { findAllByName: findAllByName, parseTable: parseTable, findORing: findORing, parsePackingTable: parsePackingTable, findPacking: findPacking, DustProducts: DustProducts, WearProducts: WearProducts, MaxResults: MaxResults,
-    PackingProducts: PackingProducts, NameMaxResults: NameMaxResults, formatPackingTol: formatPackingTol };
+    PackingProducts: PackingProducts, TrelleborgProducts: TrelleborgProducts, NameMaxResults: NameMaxResults, formatPackingTol: formatPackingTol };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Pakkin = api;
 })(this);

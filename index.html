@@ -64,7 +64,7 @@
   #pkFig img { width: 100%; height: auto; display: block; margin-bottom: 12px; }
   .ring.pk { cursor: pointer; }
   /* メーカーごとの色（カードの左端の帯・見出しとメーカー欄の札） */
-  .mk-sakagami { --mk: #1565C0; } .mk-valqua { --mk: #00897B; } .mk-nok { --mk: #D32F2F; }
+  .mk-sakagami { --mk: #1565C0; } .mk-valqua { --mk: #00897B; } .mk-nok { --mk: #D32F2F; } .mk-tb { --mk: #6A1B9A; }
   .ring.pk[class*="mk-"] { border-left: 6px solid var(--mk); }
   .mkTag { display: inline-block; padding: 0 8px; border-radius: 10px; background: var(--mk); color: #fff; font-size: 12px; font-weight: bold; vertical-align: middle; }
   h2 .mkTag { margin-left: 8px; }
@@ -79,7 +79,9 @@
     <div class="row"><label for="pname">検索</label>
       <input id="pname" autocomplete="off" autocapitalize="characters" placeholder="例 P20、SKY40（種類を選ばなくても探せます）"></div>
     <div class="row"><label for="kind">種類</label>
-      <select id="kind"><option value="oring">Oリング（JIS B 2401）</option><option value="packing">Uパッキン</option><option value="dust">ダストシール</option><option value="wear">ウェアリング（ピストン用）</option></select></div>
+      <select id="kind"><option value="oring">Oリング（JIS B 2401）</option><option value="packing">Uパッキン</option><option value="dust">ダストシール</option><option value="wear">ウェアリング（ピストン用）</option><option value="tb">海外（トレルボルグ）</option></select></div>
+    <div class="row" id="tbRow" hidden><label for="tbKind">海外の種類</label>
+      <select id="tbKind"><option value="piston">油圧用ピストンシール</option><option value="rod">油圧用ロッドシール</option><option value="scraper">油圧用スクレーパー/ワイパー</option><option value="all">油圧用シール（すべて）</option><option value="wear">油圧用ウェアリング（ピストン用）</option></select></div>
     <div class="row"><label for="inner"><span class="dot" style="background:var(--inner)"></span><span id="innerLabel">d 溝の内径</span> [mm]</label>
       <input id="inner" inputmode="decimal" autocomplete="off"></div>
     <div class="row" id="outerRow"><label for="outer"><span class="dot" style="background:var(--outer)"></span>D 溝の外径 [mm]</label>
@@ -182,14 +184,31 @@
     .then(function (r) { if (!r.ok) throw new Error(); return r.text(); })
     .then(function (t) { wtable = Pakkin.parsePackingTable(t); })
     .catch(function () { showError('サイズ表（data/wear_ring.csv）を読み込めませんでした。'); });
+  var ttable = null;
+  fetch('data/trelleborg.csv')
+    .then(function (r) { if (!r.ok) throw new Error(); return r.text(); })
+    .then(function (t) { ttable = Pakkin.parsePackingTable(t); })
+    .catch(function () { showError('サイズ表（data/trelleborg.csv）を読み込めませんでした。'); });
+
+  // 海外（トレルボルグ）の製品：表示名、図の記号（d・D・溝幅・C）、H 列の意味
+  var TB = {
+    'TGR-P': { name: 'Turcon Glyd Ring', use: 'ピストン用', d: 'd1', D: 'DN', W: 'L1', H: 'Oリング' },
+    'TSS2K-P': { name: 'Turcon Stepseal 2K', use: 'ピストン用', d: 'd1', D: 'DN', W: 'L1', H: 'Oリング' },
+    'TSS2K-R': { name: 'Turcon Stepseal 2K', use: 'ロッド用', d: 'dN', D: 'D1', W: 'L1', H: 'Oリング' },
+    'TGR-R': { name: 'Turcon Glyd Ring', use: 'ロッド用', d: 'dN', D: 'D1', W: 'L1', H: 'Oリング' },
+    'TEX2': { name: 'Turcon Excluder 2', use: 'スクレーパー', d: 'dN', D: 'D3', W: 'L3', H: 'Oリング' },
+    'WRM': { name: 'Scraper WRM', use: 'スクレーパー', d: 'dN', D: 'D3', W: 'L3', C: 'D4', H: 'Polypac 品番' },
+    'SLY-P': { name: 'Turcite Slydring', use: 'ウェアリング（ピストン用）', d: 'd2', D: 'DN', W: 'L2', H: '厚さ W' }
+  };
 
   // 阪上パッキンの図：寸法指示図がある製品だけ切り替える
   // 製品ごとにある図（ピストン用・ロッド用）。UHP・MLP・MLR はバルカー、UPH は NOK のカタログの図
   var FIG_PRODUCTS = { SKY: ['piston', 'rod'], KY: ['piston', 'rod'], UHP: ['piston'], MLP: ['piston'], MLR: ['rod'], UPH: ['piston', 'rod'], SDR: ['rod'], LBH: ['rod'], DHS: ['rod'], DKI: ['rod'],
-    SW: ['piston'], SWA: ['piston'], SWB: ['piston'], SWO: ['piston'], WR: ['piston'], WPL: ['piston'], WPG: ['piston'] };
+    SW: ['piston'], SWA: ['piston'], SWB: ['piston'], SWO: ['piston'], WR: ['piston'], WPL: ['piston'], WPG: ['piston'],
+    'TGR-P': ['piston'], 'TSS2K-P': ['piston'], 'TSS2K-R': ['rod'], 'TGR-R': ['rod'], TEX2: ['rod'], WRM: ['rod'], 'SLY-P': ['piston'] };
   var VALQUA = ['UHP', 'MLP', 'MLR', 'DHS', 'WPL', 'WPG'], NOK = ['UPH', 'DKI', 'LBH', 'WR'];
-  function maker(p) { return VALQUA.indexOf(p) >= 0 ? 'バルカー' : NOK.indexOf(p) >= 0 ? 'NOK' : '阪上製作所'; }
-  function mkClass(p) { return VALQUA.indexOf(p) >= 0 ? 'mk-valqua' : NOK.indexOf(p) >= 0 ? 'mk-nok' : 'mk-sakagami'; }
+  function maker(p) { return TB[p] ? 'トレルボルグ' : VALQUA.indexOf(p) >= 0 ? 'バルカー' : NOK.indexOf(p) >= 0 ? 'NOK' : '阪上製作所'; }
+  function mkClass(p) { return TB[p] ? 'mk-tb' : VALQUA.indexOf(p) >= 0 ? 'mk-valqua' : NOK.indexOf(p) >= 0 ? 'mk-nok' : 'mk-sakagami'; }
   function mkTag(p) { return '<span class="mkTag ' + mkClass(p) + '">' + maker(p) + '</span>'; }
   // 公差を数値の後ろに色付きで出す（両用は「ピストン …／ロッド …」を別々の枠にする）
   function tolHtml(s) {
@@ -204,12 +223,13 @@
     $('pkRod').hidden = uses.indexOf('rod') < 0;
     if (!$('pkPiston').hidden) $('pkImgPiston').src = 'images/' + k + '-piston.png';
     if (!$('pkRod').hidden) $('pkImgRod').src = 'images/' + k + '-rod.png';
-    $('pkSrc').innerHTML = VALQUA.indexOf(p) >= 0
+    $('pkSrc').innerHTML = TB[p] ? 'トレルボルグ Hydraulic Seals Catalog（Metric、2026年10月版）の装着図'
+      : VALQUA.indexOf(p) >= 0
       ? 'バルカー 油圧用パッキン カタログ <span class="figP"></span>シリーズ'
       : NOK.indexOf(p) >= 0 ? 'NOK <span class="figP"></span>型 寸法表'
       : p === 'SDR' || /^SW/.test(p) ? '阪上製作所 <span class="figP"></span> 製品ページ'
       : '阪上製作所 <span class="figP"></span>パッキン 製品ページ';
-    [].forEach.call(document.querySelectorAll('.figP'), function (el) { el.textContent = p; });
+    [].forEach.call(document.querySelectorAll('.figP'), function (el) { el.textContent = TB[p] ? TB[p].name : p; });
   }
   // 寸法指示図で各寸法の記号がある場所（画像のピクセル座標 [x, y, 幅, 高さ]）。キーは画像名
   // ダストシール：D・W（溝幅）・C ／ Uパッキン：d・D1・GA・GB（UPH の図では HA・HB）
@@ -234,7 +254,15 @@
     'swo-piston': { w: 1200, h: 364, D: [383, 172, 26, 70], D1: [415, 176, 26, 72], d: [558, 192, 26, 36], W: [551, 2, 52, 36] },
     'wr-piston': { w: 1200, h: 586, D: [408, 278, 28, 124], d: [692, 298, 36, 90], W: [731, 3, 62, 38] },
     'wpl-piston': { w: 1200, h: 614, D: [476, 252, 32, 110], d: [783, 278, 30, 86], W: [786, 28, 40, 34] },
-    'wpg-piston': { w: 1200, h: 649, D: [468, 282, 28, 92], d: [668, 282, 28, 92], W: [752, 562, 56, 46] }
+    'wpg-piston': { w: 1200, h: 649, D: [468, 282, 28, 92], d: [668, 282, 28, 92], W: [752, 562, 56, 46] },
+    // 海外（トレルボルグ）：d・D・W（溝幅）・C（WRM の D4）
+    'tgr-p-piston': { w: 1200, h: 322, D: [403, 271, 24, 40], d: [451, 276, 24, 40], W: [710, 8, 26, 28] },
+    'tss2k-p-piston': { w: 1200, h: 318, D: [401, 267, 24, 40], d: [449, 269, 24, 40], W: [707, 2, 26, 28] },
+    'tss2k-r-rod': { w: 1200, h: 324, W: [312, 5, 26, 28], d: [699, 281, 24, 40], D: [745, 281, 24, 40] },
+    'tgr-r-rod': { w: 1200, h: 320, W: [389, 6, 26, 28], d: [574, 263, 24, 40], D: [618, 263, 24, 40] },
+    'tex2-rod': { w: 1200, h: 461, W: [540, 30, 28, 28], d: [720, 345, 24, 40], D: [813, 345, 24, 40] },
+    'wrm-rod': { w: 1200, h: 391, W: [516, 35, 28, 28], d: [716, 321, 24, 40], C: [764, 321, 24, 40], D: [810, 321, 24, 40] },
+    'sly-p-piston': { w: 1200, h: 368, D: [425, 269, 24, 40], d: [472, 272, 24, 40], W: [614, 3, 26, 28] }
   };
   var MARK_COLOR = { d: 'var(--inner)', D: 'var(--outer)', D1: 'var(--depth)', C: 'var(--depth)', W: 'var(--width)', GA: 'var(--width)', GB: 'var(--width)' };
   var MARK_CLASS = { d: 'cd', D: 'cD', D1: 'cC', C: 'cC', W: 'cW', GA: 'cW', GB: 'cW' };
@@ -297,18 +325,22 @@
 
   // 阪上パッキンは運動用なので「用途」は使わない
   $('kind').addEventListener('change', function () {
-    var pk = $('kind').value === 'packing', dust = $('kind').value === 'dust', wear = $('kind').value === 'wear';
+    var tb = $('kind').value === 'tb';
+    var pk = $('kind').value === 'packing', dust = $('kind').value === 'dust', wear = $('kind').value === 'wear' || tb;   // 海外はウェアリングと同じ入力（d・D・溝幅）
+    $('tbRow').hidden = !tb;
     $('use').disabled = pk || dust || wear;
-    $('br').disabled = dust || wear;   // ダストシール・ウェアリングはバックアップリングを使わない
+    $('br').disabled = dust || wear;   // ダストシール・ウェアリング・海外はバックアップリングを使わない
     $('figRing').textContent = pk ? 'パッキン' : 'Oリング';
     $('innerLabel').textContent = dust ? 'd ロッド径' : 'd 溝の内径';
     $('outerRow').hidden = dust; $('widthRow').hidden = dust;   // ダストシールはロッド径だけで検索
     document.querySelector('#figCard svg').style.display = pk || dust || wear ? 'none' : '';
-    if (pk) setPackingFig('SKY'); else if (dust) setPackingFig('SDR'); else if (wear) setPackingFig('SW');
+    if (pk) setPackingFig('SKY'); else if (dust) setPackingFig('SDR'); else if (tb) setPackingFig(Pakkin.TrelleborgProducts[$('tbKind').value][0]); else if (wear) setPackingFig('SW');
     markFig(null); markOring(null);
     $('pkFig').hidden = !(pk || dust || wear);
     $('msg').className = ''; $('msg').textContent = '寸法を入力して［検索］を押してください。'; $('results').innerHTML = '';
   });
+
+  $('tbKind').addEventListener('change', function () { $('kind').dispatchEvent(new Event('change')); });
 
   // 図の数値を入力に合わせて更新
   function updateFig() {
@@ -400,6 +432,30 @@
     });
     return h;
   }
+  // 海外（トレルボルグ）：記号は各製品の装着図に合わせる
+  function tbHtml(tr) {
+    var h = '', prev = null, idx = 0;
+    tr.Candidates.forEach(function (r) {
+      var t = TB[r.Product];
+      if (r.Product !== prev) {
+        var n = tr.Candidates.filter(function (x) { return x.Product === r.Product; }).length;
+        h += '<h2>' + esc(t.name) + '（' + t.use + '・' + n + ' 件）' + mkTag(r.Product) + '</h2>'; prev = r.Product; idx = 0;
+      }
+      var v = [{ k: 'd', l: t.d, v: withTol(r.D1, r.TolInner) }, { k: 'D', l: t.D, v: withTol(r.D2, r.TolOuter) }, { k: 'W', l: t.W, v: withTol(r.Width, r.TolWidth) }];
+      if (r.DiaD1 && t.C) v.push({ k: 'C', l: t.C, v: withTol(r.DiaD1, r.TolD1) });
+      h += '<div class="ring pk ' + mkClass(r.Product) + (idx === 0 ? ' top' : ' alt') + '" data-product="' + esc(r.Product) + '" data-vals="' + esc(JSON.stringify(v)) + '">'
+        + '<div class="name">' + esc(r.Code) + '<small>' + t.use + '</small>' + unverified(r) + '</div><dl>'
+        + '<dt class="cd">' + t.d + '</dt><dd><b>' + r.D1 + '</b>' + tolHtml(r.TolInner) + '</dd>'
+        + '<dt class="cD">' + t.D + '</dt><dd><b>' + r.D2 + '</b>' + tolHtml(r.TolOuter) + '</dd>'
+        + '<dt class="cW">' + t.W + '</dt><dd><b>' + r.Width + '</b>' + tolHtml(r.TolWidth) + '</dd>'
+        + (r.DiaD1 && t.C ? '<dt class="cC">' + t.C + '</dt><dd><b>' + esc(r.DiaD1) + '</b>' + tolHtml(r.TolD1) + '</dd>' : '')
+        + (r.H ? '<dt>' + t.H + '</dt><dd>' + esc(r.H) + '</dd>' : '')
+        + '<dt>メーカー</dt><dd>' + mkTag(r.Product) + '</dd>'
+        + '</dl></div>';
+      idx++;
+    });
+    return h;
+  }
   function packingHtml(pr, br) {
     var useName = { Piston: 'ピストン用', Rod: 'ロッド用', Both: 'ピストン・ロッド両用' };
     var ph = '', prev = null, idx = 0;
@@ -463,20 +519,21 @@
 
   // 呼び番号で探す：種類を選ばなくても、Oリング・Uパッキン・ダストシールをまとめて探す
   function searchByName(name) {
-    if (!table || !ptable || !dtable || !wtable) throw new Error('規格表を読み込み中です。少し待ってからもう一度押してください。');
+    if (!table || !ptable || !dtable || !wtable || !ttable) throw new Error('規格表を読み込み中です。少し待ってからもう一度押してください。');
     var br = $('br').value;
-    var all = Pakkin.findAllByName({ name: name, backupRing: br, oringTable: table, packingTable: ptable, dustTable: dtable, wearTable: wtable });
+    var all = Pakkin.findAllByName({ name: name, backupRing: br, oringTable: table, packingTable: ptable, dustTable: dtable, wearTable: wtable, tbTable: ttable });
     var res = all.ORing, pr = all.Packing, dr = all.Dust, wr = all.Wear;
-    var parts = [['Oリング', res], ['Uパッキン', pr], ['ダストシール', dr], ['ウェアリング', wr]];
+    var tr = all.Trelleborg;
+    var parts = [['Oリング', res], ['Uパッキン', pr], ['ダストシール', dr], ['ウェアリング', wr], ['海外（トレルボルグ）', tr]];
     var lines = ['呼び番号に「' + name + '」を含むもの（種類・寸法・用途は使いません）'];
-    if (!(res.Total + pr.Total + dr.Total + wr.Total)) lines.push('Oリング・Uパッキン・ダストシール・ウェアリングのどれにもありません。');
+    if (!(res.Total + pr.Total + dr.Total + wr.Total + tr.Total)) lines.push('Oリング・Uパッキン・ダストシール・ウェアリング・海外（トレルボルグ）のどれにもありません。');
     else {
       lines.push(parts.filter(function (p) { return p[1].Total; }).map(function (p) {
         return p[0] + ' ' + p[1].Total + ' 件' + (p[1].Total > p[1].Candidates.length ? '（先頭 ' + p[1].Candidates.length + ' 件を表示）' : '');
       }).join('、') + ' 見つかりました（一致の近い順）。');
     }
     $('msg').className = ''; $('msg').textContent = lines.join('\n');
-    showResults(oringHtml(res, 'Oリング ') + packingHtml(pr, br) + dustHtml(dr) + wearHtml(wr));
+    showResults(oringHtml(res, 'Oリング ') + packingHtml(pr, br) + dustHtml(dr) + wearHtml(wr) + tbHtml(tr));
   }
 
   $('form').addEventListener('submit', function (e) {
@@ -491,6 +548,20 @@
       var outer = isDust ? null : readNumber('outer', '溝の外径');
       var width = isDust ? null : readNumber('width', '溝幅');
 
+      if ($('kind').value === 'tb') {
+        if (!ttable) throw new Error('サイズ表を読み込み中です。少し待ってからもう一度押してください。');
+        var tsel = $('tbKind');
+        var tr = Pakkin.findPacking({ inner: inner, outer: outer, width: width, backupRing: 'None', table: ttable, products: Pakkin.TrelleborgProducts[tsel.value], label: tsel.options[tsel.selectedIndex].text });
+        var tl = ['判定条件：' + tr.Notes.join(' / ')];
+        if (tr.Candidates.length === 0) tl = tl.concat(tr.Reasons);
+        else {
+          tl.push(countLine(tr, '（製品ごとに最大 ' + Pakkin.MaxResults + ' 件、寸法の差が小さい順）'));
+          tl.push('出典：トレルボルグ Hydraulic Seals Catalog（Metric、2026年10月版）の寸法表。品番の後ろに材質コードが付きます。使用条件は同カタログで確認してください。');
+        }
+        $('msg').className = ''; $('msg').textContent = tl.join('\n');
+        showResults(tbHtml(tr));
+        return;
+      }
       if ($('kind').value === 'wear') {
         if (!wtable) throw new Error('サイズ表を読み込み中です。少し待ってからもう一度押してください。');
         var wr = Pakkin.findPacking({ inner: inner, outer: outer, width: width, backupRing: 'None', table: wtable, products: Pakkin.WearProducts, label: 'ウェアリング' });
