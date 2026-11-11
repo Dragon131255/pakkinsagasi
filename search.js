@@ -6,8 +6,17 @@
   // ---- 判定基準（JIS B 2401 の推奨値。2026-11-09 にユーザーが照合済み） ----
   var Criteria = {
     Dynamic: { SqueezeMin: 8, SqueezeMax: 20, Series: ['P'] },
-    Static: { SqueezeMin: 15, SqueezeMax: 30, Series: ['P', 'G'] }
+    Static: { SqueezeMin: 15, SqueezeMax: 30, Series: ['P', 'G'] },
+    // 平面固定・内圧用（2026-11-12 追加、ユーザー指示。出典：さくらシール G規格サイズ表の「平面溝-内圧用」）
+    FaceInner: { SqueezeMin: 15, SqueezeMax: 30, Series: ['G'], Face: true }
   };
+  // 平面溝・内圧用：Oリング外周を溝の外壁に当てる。外径の縮み = (Oリング外径 − 溝外径 D) / Oリング外径 [%]
+  // ※ 範囲は仮の値（JIS 未照合）。標準溝は D = Oリング外径（縮み 0%）
+  var FaceOuterCompMin = 0, FaceOuterCompMax = 3;
+  // 平面溝の標準寸法（さくらシール G規格サイズ表）：G＝溝幅（+0.25/0）、H＝溝深さ（±0.05）
+  var FaceGroove = { G: { 3.1: { G: 4.1, H: 2.4 }, 5.7: { G: 7.5, H: 4.6 } } };
+  var FaceDepthTolerance = 0.05;
+  var FaceNote = '※ 平面溝（内圧用）：Oリングの外周を溝の外壁（D）に当てる。溝外径 D の標準は Oリング外径';
   var FillMax = 85, StretchMin = 0, StretchMax = 5, MaxResults = 2, NameMaxResults = 30;
   var RodSideNote = '※ 軸側の溝（ピストン・軸に溝がある）だけに対応。穴側の溝（ハウジングに溝がある）は未対応';
   // 記号・空白だけの検索語（比較用の文字が残らない）はエラーにする
@@ -53,7 +62,81 @@
 
   function f(v, n) { return v.toFixed(n); }
 
+  // 平面溝・内圧用：入力は 溝外径 D（outer）・溝幅 G（width）・溝深さ H（depth）
+  function findORingFace(opt, c) {
+    var go = opt.outer, gw = opt.width, gh = opt.depth;
+    var hasOuter = go != null, hasWidth = gw != null, hasDepth = gh != null;
+    if (!(hasOuter || hasWidth || hasDepth)) throw new Error('溝の外径・溝幅・溝深さのどれか1つ以上を入力してください。');
+    [go, gw, gh].forEach(function (v) {
+      if (v != null && v <= 0) throw new Error('寸法には0より大きい値を入力してください。');
+    });
+    var mid = (c.SqueezeMin + c.SqueezeMax) / 2;
+
+    var notes = [];
+    if (hasOuter) notes.push('外径の縮み ' + FaceOuterCompMin + '〜' + FaceOuterCompMax + '%');
+    if (hasDepth) notes.push('つぶし率 0%超・' + c.SqueezeMax + '% 以下');
+    if (hasWidth) {
+      notes.push('溝充填率 ' + FillMax + '% 以下');
+      if (!hasDepth) notes.push('（溝深さは未入力のため、つぶし率 ' + mid + '% になる溝深さを仮定）');
+    }
+    notes.push(FaceNote);
+
+    var evaluated = [];
+    opt.table.forEach(function (r) {
+      if (c.Series.indexOf(r.Series) < 0) return;
+      var od = r.D1 + 2 * r.D2;
+      var comp = hasOuter ? (od - go) / od * 100 : null;
+      var h = hasDepth ? gh : r.D2 * (1 - mid / 100);
+      var squeeze = hasDepth ? (r.D2 - h) / r.D2 * 100 : null;
+      var fill = hasWidth ? (Math.PI * r.D2 * r.D2 / 4) / (h * gw) * 100 : null;
+      var std = (FaceGroove[r.Series] || {})[r.D2] || null;
+      evaluated.push({
+        Series: r.Series, Name: r.Name, D1: r.D1, D2: r.D2, Source: r.Source || '', Verified: r.Verified || '', Face: true,
+        TolInner: '—', TolOuter: '—',
+        TolWidth: '+' + f(GrooveWidthTolerance, 2) + ' / 0',
+        TolDepth: '±' + f(FaceDepthTolerance, 2),
+        StdInner: null, StdOuter: +od.toFixed(2),
+        StdWidth: std ? std.G : null, StdDepth: std ? std.H : null,
+        Depth: h, Squeeze: squeeze, Fill: fill, OuterComp: comp, Stretch: null,
+        CompOk: !hasOuter || (comp >= FaceOuterCompMin - 1e-9 && comp <= FaceOuterCompMax),
+        SqueezeOk: !hasDepth || (squeeze > 0 && squeeze <= c.SqueezeMax),
+        FillOk: !hasWidth || fill <= FillMax
+      });
+    });
+
+    var key = hasOuter ? function (x) { return x.OuterComp; }
+      : hasDepth ? function (x) { return Math.abs(x.Squeeze - mid); }
+        : function (x) { return FillMax - x.Fill; };
+    var candidates = [];
+    c.Series.forEach(function (s) {
+      candidates = candidates.concat(evaluated
+        .filter(function (x) { return x.Series === s && x.CompOk && x.SqueezeOk && x.FillOk; })
+        .sort(function (a, b) { return key(a) - key(b); })
+        .slice(0, MaxResults));
+    });
+
+    var reasons = [];
+    if (!candidates.length) {
+      var fitting = evaluated.filter(function (x) { return x.CompOk; });
+      if (!fitting.length) {
+        reasons.push(hasOuter
+          ? '溝外径に合う外径のOリングがありません（外径の縮み ' + FaceOuterCompMin + '〜' + FaceOuterCompMax + '% の範囲外）。'
+          : '入力した寸法に合うOリングがありません。');
+      } else {
+        fitting.forEach(function (x) {
+          var ng = [];
+          if (!x.SqueezeOk) ng.push('つぶし率 ' + f(x.Squeeze, 1) + (x.Squeeze <= 0 ? '%（つぶれないためシールしない）' : '%（上限 ' + c.SqueezeMax + '%）'));
+          if (!x.FillOk) ng.push('溝充填率 ' + f(x.Fill, 1) + '%（上限 ' + FillMax + '%）');
+          reasons.push(x.Name + '：' + ng.join('、'));
+        });
+        if (reasons.length > 10) reasons = reasons.slice(0, 10).concat('…ほか ' + (reasons.length - 10) + ' 件');
+      }
+    }
+    return { GrooveDepth: hasDepth ? gh : null, Candidates: candidates, Reasons: reasons, Notes: notes, ByName: false, Total: candidates.length, Face: true };
+  }
+
   function findORing(opt) {
+    if (!(opt.name || '').trim() && Criteria[opt.use] && Criteria[opt.use].Face) return findORingFace(opt, Criteria[opt.use]);
     var gi = opt.inner, go = opt.outer, gw = opt.width;
     var hasInner = gi != null, hasOuter = go != null, hasWidth = gw != null;
     var brIndex = { None: 0, One: 1, Both: 2 }[opt.backupRing || 'None'];

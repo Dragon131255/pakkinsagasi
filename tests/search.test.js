@@ -318,3 +318,28 @@ test.describe('海外（トレルボルグ）', () => {
     assert.equal(a.Trelleborg.Candidates[0].D2, 100);
   });
 });
+
+test.describe('findORing 平面固定（内圧用）', () => {
+  test.it('G25 の標準溝（D=30.6, G=4.1, H=2.4）で G25 が先頭、G系列だけ', () => {
+    const r = P.findORing({ outer: 30.6, width: 4.1, depth: 2.4, use: 'FaceInner', table });
+    assert.equal(r.Face, true);
+    assert.equal(r.Candidates[0].Name, 'G25');
+    assert.ok(r.Candidates.every((c) => c.Series === 'G'));
+    const c = r.Candidates[0];
+    assert.equal(c.StdOuter, 30.6); assert.equal(c.StdWidth, 4.1); assert.equal(c.StdDepth, 2.4);
+    assert.ok(Math.abs(c.OuterComp) < 1e-9);
+  });
+  test.it('線径 5.7 の標準溝は G=7.5・H=4.6', () => {
+    const r = P.findORing({ outer: 160.7, use: 'FaceInner', table });
+    const c = r.Candidates[0];
+    assert.equal(c.Name, 'G150'); assert.equal(c.StdWidth, 7.5); assert.equal(c.StdDepth, 4.6);
+  });
+  test.it('溝深さが線径以上なら、つぶれないので候補なし', () => {
+    const r = P.findORing({ outer: 30.6, depth: 3.2, use: 'FaceInner', table });
+    assert.equal(r.Candidates.length, 0);
+    assert.ok(r.Reasons.some((s) => s.includes('つぶれない')));
+  });
+  test.it('寸法なしはエラー', () => {
+    assert.throws(() => P.findORing({ use: 'FaceInner', table }));
+  });
+});

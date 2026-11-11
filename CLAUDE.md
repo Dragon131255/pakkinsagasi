@@ -159,5 +159,12 @@ pakkinsagasi/
 - 判定基準・計算式を変えたら tests/search.test.js も直し、テストを通してから push する（push すると公開サイトにすぐ反映される）
   - 規格表は `data/oring_jis_b2401.csv` を読む（fetch するため、ローカルではファイルを直接開かず HTTP サーバー経由で確認する）
 
+## Oリング 平面固定（内圧用）（2026-11-12 追加、ユーザー指示）
+- 「用途」で「平面固定（内圧用）」を選ぶ（`Criteria.FaceInner`、`findORingFace`）。入力は 溝外径 D・溝幅 G・溝深さ H（溝内径の欄は隠す。バックアップリングは使わない）
+- 対象は G系列だけ。出典：さくらシール G規格サイズ表 https://www.sakura-seal.co.jp/category/1982819.html の「平面溝-内圧用」
+- 判定：外径の縮み = (Oリング外径 − D) / Oリング外径 が `FaceOuterCompMin`〜`FaceOuterCompMax`（0〜3%、**仮の値・JIS 未照合**）、つぶし率 = (d2 − H) / d2（固定用と同じ上限）、溝充填率 = π·d2²/4 / (H × G)
+- 標準溝：D = Oリング外径（d1 + 2·d2）、G・H は `FaceGroove`（線径 3.1：G 4.1・H 2.4、5.7：G 7.5・H 4.6。公差 G +0.25/0、H ±0.05）。D の公差は出典にないので出さない
+- 図：`images/oring-face-inner.png`（さくらシールの図、右下のロゴを白で消した）。枠の位置は index.html の `FACE_MARKS`
+
 ## 未決事項
 - 外側シール（溝が穴側にある場合）の判定式は今は扱わない。必要になったら追加する
