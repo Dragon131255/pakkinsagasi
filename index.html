@@ -92,7 +92,7 @@
     <div class="row" id="depthRow" hidden><label for="depth"><span class="dot" style="background:var(--depth)"></span>H 溝深さ [mm]</label>
       <input id="depth" inputmode="decimal" autocomplete="off"></div>
     <div class="row"><label for="use">用途</label>
-      <select id="use"><option value="Dynamic">運動用</option><option value="Static" selected>固定用</option><option value="FaceInner">平面固定（内圧用）</option></select></div>
+      <select id="use"><option value="Dynamic">運動用</option><option value="Static" selected>固定用</option><option value="FaceInner">平面固定（内圧用）</option><option value="FaceOuter">平面固定（外圧用）</option></select></div>
     <div class="row"><label for="br"><span class="dot" style="background:var(--br)"></span>バックアップリング</label>
       <select id="br"><option value="None">なし</option><option value="One">片側</option><option value="Both">両側</option></select></div>
     <div class="actions"><button type="submit">検索</button><span class="hint">空欄の寸法は判定に使いません。「検索」に呼び番号を入れたときは種類・寸法を使いません</span></div>
@@ -140,9 +140,9 @@
       </g>
     </svg>
     <div id="faceFig" hidden>
-      <div class="figttl">溝の断面図（平面溝・内圧用）</div>
-      <div class="figWrap"><img src="images/oring-face-inner.png" alt="平面溝・内圧用の溝寸法図"><svg id="faceMarks" class="pkMarks" viewBox="0 0 1000 671" preserveAspectRatio="none" aria-hidden="true"></svg></div>
-      <div class="hint">出典：さくらシール Oリング G規格 サイズ表（平面溝-内圧用）</div>
+      <div class="figttl">溝の断面図（平面溝・<span id="faceName">内圧用</span>）</div>
+      <div class="figWrap"><img id="faceImg" src="images/oring-face-inner.png" alt="平面溝の溝寸法図"><svg id="faceMarks" class="pkMarks" viewBox="0 0 1000 671" preserveAspectRatio="none" aria-hidden="true"></svg></div>
+      <div class="hint">出典：さくらシール Oリング G規格 サイズ表（平面溝-<span id="faceName2">内圧用</span>）</div>
     </div>
     <div id="orMarkVals" class="markVals" hidden></div>
     <div id="pkFig" hidden>
@@ -276,7 +276,11 @@
   var MARK_CLASS = { d: 'cd', D: 'cD', D1: 'cC', C: 'cC', W: 'cW', GA: 'cW', GB: 'cW', H: 'cC' };
   MARK_COLOR.H = 'var(--depth)';
   // 平面溝・内圧用の図（images/oring-face-inner.png、1000×671）の記号の位置 [x, y, 幅, 高さ]
-  var FACE_MARKS = { D: [462, 72, 84, 52], W: [796, 128, 50, 46], H: [905, 152, 46, 50] };
+  // 外圧用（images/oring-face-outer.png）は d と G の位置が違う
+  var FACE_MARKS = {
+    Inner: { D: [462, 72, 84, 52], W: [796, 128, 50, 46], H: [905, 152, 46, 50] },
+    Outer: { d: [462, 72, 84, 52], W: [684, 72, 50, 46], H: [905, 152, 46, 50] }
+  };
   // 値に公差を（ ）で付ける（カードの data-vals と図の下の数値用）
   function withTol(v, t) { return v + (t && t !== '—' ? '（' + t + '）' : ''); }
   // 入口側の穴径（データの D1Dia）の、図での記号。DKI の図にはない
@@ -313,10 +317,10 @@
     if (card !== undefined) orSel = card;
     var g = $('orMarks'), vals = orSel ? JSON.parse(orSel.getAttribute('data-vals')) : [];
     g.innerHTML = ''; $('faceMarks').innerHTML = '';
-    var face = orSel && orSel.hasAttribute('data-face');
+    var face = orSel && orSel.getAttribute('data-face');
     vals.forEach(function (x) {
       if (face) {   // 平面溝の図（画像）の記号に枠を付ける
-        var fb = FACE_MARKS[x.k];
+        var fb = FACE_MARKS[face][x.k];
         if (!fb) return;
         var fr = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         fr.setAttribute('x', fb[0]); fr.setAttribute('y', fb[1]); fr.setAttribute('width', fb[2]); fr.setAttribute('height', fb[3]);
@@ -351,11 +355,12 @@
     $('tbRow').hidden = !tb;
     $('use').disabled = pk || dust || wear;
     $('br').disabled = dust || wear || isFace();   // ダストシール・ウェアリング・海外・平面溝はバックアップリングを使わない
-    $('innerRow').hidden = isFace(); $('depthRow').hidden = !isFace();   // 平面溝は 溝外径・溝幅・溝深さで探す
+    $('innerRow').hidden = faceType() === 'Inner'; $('depthRow').hidden = !isFace();   // 平面溝は 内圧用＝溝外径、外圧用＝溝内径 と 溝幅・溝深さで探す
     $('faceFig').hidden = !isFace();
+    if (isFace()) setFaceFig(faceType());
     $('figRing').textContent = pk ? 'パッキン' : 'Oリング';
     $('innerLabel').textContent = dust ? 'd ロッド径' : 'd 溝の内径';
-    $('outerRow').hidden = dust; $('widthRow').hidden = dust;   // ダストシールはロッド径だけで検索
+    $('outerRow').hidden = dust || faceType() === 'Outer'; $('widthRow').hidden = dust;   // ダストシールはロッド径だけで検索
     document.querySelector('#figCard svg').style.display = pk || dust || wear || isFace() ? 'none' : '';
     if (pk) setPackingFig('SKY'); else if (dust) setPackingFig('SDR'); else if (tb) setPackingFig(Pakkin.TrelleborgProducts[$('tbKind').value][0]); else if (wear) setPackingFig('SW');
     markFig(null); markOring(null);
@@ -392,7 +397,14 @@
   updateFig();
 
   // Oリングで用途が平面固定（内圧用）のとき
-  function isFace() { return $('kind').value === 'oring' && $('use').value === 'FaceInner'; }
+  // Oリングで用途が平面固定のとき 'Inner'（内圧用）／'Outer'（外圧用）、それ以外は ''
+  function faceType() { var u = $('use').value; return $('kind').value === 'oring' && u.indexOf('Face') === 0 ? u.slice(4) : ''; }
+  function isFace() { return !!faceType(); }
+  // 平面溝の図を内圧用／外圧用に切り替える
+  function setFaceFig(t) {
+    $('faceImg').src = t === 'Outer' ? 'images/oring-face-outer.png' : 'images/oring-face-inner.png';
+    $('faceName').textContent = $('faceName2').textContent = t === 'Outer' ? '外圧用' : '内圧用';
+  }
   function readNumber(id, label) {
     var s = $(id).value.trim().replace(/[０-９．]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); });
     if (s === '') return null;
@@ -514,17 +526,18 @@
       if (!list.length) return;
       html += '<h2>' + (prefix || '') + s + '系列（' + list.length + ' 件）</h2>';
       list.forEach(function (r, i) {
-        if (r.Face) {   // 平面溝・内圧用：溝外径 D・溝幅 G・溝深さ H
-          var fv = [{ k: 'D', l: 'D', v: withTol(fmt(r.StdOuter), r.TolOuter) }, { k: 'W', l: 'G', v: withTol(fmt(r.StdWidth), r.TolWidth) }, { k: 'H', l: 'H', v: withTol(fmt(r.StdDepth), r.TolDepth) }];
-          html += '<div class="ring or' + (i === 0 ? ' top' : i % 2 ? ' alt' : '') + '" data-face="1" data-name="' + esc(r.Name) + '" data-vals="' + esc(JSON.stringify(fv)) + '">'
-            + '<div class="name">' + esc(r.Name) + '<small>線径 d2 ' + r.D2.toFixed(1) + ' / 内径 d1 ' + r.D1.toFixed(1) + ' / 外径 ' + fmt(r.StdOuter) + '</small>' + unverified(r) + '</div><dl>'
-            + '<dt class="cD">溝外径 D</dt><dd>' + fmt(r.StdOuter) + '</dd>'
+        if (r.Face) {   // 平面溝：内圧用＝溝外径 D、外圧用＝溝内径 d と 溝幅 G・溝深さ H
+          var fin = r.Face === 'Inner';
+          var fv = [fin ? { k: 'D', l: 'D', v: withTol(fmt(r.StdOuter), r.TolOuter) } : { k: 'd', l: 'd', v: withTol(fmt(r.StdInner), r.TolInner) }, { k: 'W', l: 'G', v: withTol(fmt(r.StdWidth), r.TolWidth) }, { k: 'H', l: 'H', v: withTol(fmt(r.StdDepth), r.TolDepth) }];
+          html += '<div class="ring or' + (i === 0 ? ' top' : i % 2 ? ' alt' : '') + '" data-face="' + r.Face + '" data-name="' + esc(r.Name) + '" data-vals="' + esc(JSON.stringify(fv)) + '">'
+            + '<div class="name">' + esc(r.Name) + '<small>線径 d2 ' + r.D2.toFixed(1) + ' / 内径 d1 ' + r.D1.toFixed(1) + ' / 外径 ' + fmt(r.D1 + 2 * r.D2) + '</small>' + unverified(r) + '</div><dl>'
+            + (fin ? '<dt class="cD">溝外径 D</dt><dd>' + fmt(r.StdOuter) + '</dd>' : '<dt class="cd">溝内径 d</dt><dd>' + fmt(r.StdInner) + '</dd>')
             + '<dt class="cW">溝幅 G</dt><dd>' + fmt(r.StdWidth) + '（' + esc(r.TolWidth) + '）</dd>'
             + '<dt class="cC">溝深さ H</dt><dd>' + fmt(r.StdDepth) + '（' + esc(r.TolDepth) + '）</dd>'
             + '</dl></div>';
           return;
         }
-        var ov =[{ k: 'd', l: 'd', v: withTol(fmt(r.StdInner), r.TolInner) }, { k: 'D', l: 'D', v: withTol(fmt(r.StdOuter), r.TolOuter) }, { k: 'W', l: 'G', v: withTol(fmt(r.StdWidth), r.TolWidth) }];
+        var ov = [{ k: 'd', l: 'd', v: withTol(fmt(r.StdInner), r.TolInner) }, { k: 'D', l: 'D', v: withTol(fmt(r.StdOuter), r.TolOuter) }, { k: 'W', l: 'G', v: withTol(fmt(r.StdWidth), r.TolWidth) }];
         html += '<div class="ring or' + (i === 0 ? ' top' : i % 2 ? ' alt' : '') + '" data-name="' + esc(r.Name) + '" data-vals="' + esc(JSON.stringify(ov)) + '">'
           + '<div class="name">' + esc(r.Name) + '<small>線径 d2 ' + r.D2.toFixed(1) + ' / 内径 d1 ' + r.D1.toFixed(1) + '</small>' + unverified(r) + '</div><dl>'
           + '<dt class="cd">溝内径 d</dt><dd>' + fmt(r.StdInner) + '（' + esc(r.TolInner) + '）</dd>'
@@ -538,7 +551,8 @@
   // 図を、選んだカードの種類（Oリングの断面図／パッキンの寸法指示図）にして寸法を示す
   function showFigFor(card) {
     var or = !card || card.classList.contains('or');
-    var face = or && (card ? card.hasAttribute('data-face') : isFace());
+    var face = or && (card ? card.getAttribute('data-face') : faceType());
+    if (face) setFaceFig(face);
     document.querySelector('#figCard svg').style.display = or && !face ? '' : 'none';
     $('faceFig').hidden = !face;
     $('pkFig').hidden = or;
@@ -639,9 +653,9 @@
         showResults(packingHtml(pr, $('br').value));
         return;
       }
-      var face = isFace();
+      var face = faceType();
       var depth = face ? readNumber('depth', '溝深さ') : null;
-      var res = Pakkin.findORing({ inner: face ? null : inner, outer: outer, width: width, depth: depth, use: $('use').value, backupRing: face ? 'None' : $('br').value, table: table });
+      var res = Pakkin.findORing({ inner: face === 'Inner' ? null : inner, outer: face === 'Outer' ? null : outer, width: width, depth: depth, use: $('use').value, backupRing: face ? 'None' : $('br').value, table: table });
 
       var lines = [];
       if (res.GrooveDepth != null) lines.push('溝深さ ' + res.GrooveDepth.toFixed(2) + ' mm');
@@ -650,7 +664,7 @@
         lines.push('条件に合うOリングはありませんでした。');
         lines = lines.concat(res.Reasons);
       } else {
-        var order = face ? (outer != null ? '外径の縮みが小さい順' : depth != null ? 'つぶし率が推奨範囲の中央に近い順' : '溝充填率が上限に近い順')
+        var order = face ? ((face === 'Inner' ? outer : inner) != null ? (face === 'Inner' ? '外径の縮み' : '内径の伸び') + 'が小さい順' : depth != null ? 'つぶし率が推奨範囲の中央に近い順' : '溝充填率が上限に近い順')
           : inner != null ?'内径の伸びが小さい順' : outer != null ? 'つぶし率が推奨範囲の中央に近い順' : '溝充填率が上限に近い順';
         lines.push(countLine(res, '（系列ごとに最大 ' + Pakkin.MaxResults + ' 件、' + order + '）'));
       }

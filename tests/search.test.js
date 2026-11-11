@@ -322,12 +322,12 @@ test.describe('海外（トレルボルグ）', () => {
 test.describe('findORing 平面固定（内圧用）', () => {
   test.it('G25 の標準溝（D=30.6, G=4.1, H=2.4）で G25 が先頭、G系列だけ', () => {
     const r = P.findORing({ outer: 30.6, width: 4.1, depth: 2.4, use: 'FaceInner', table });
-    assert.equal(r.Face, true);
+    assert.equal(r.Face, 'Inner');
     assert.equal(r.Candidates[0].Name, 'G25');
     assert.ok(r.Candidates.every((c) => c.Series === 'G'));
     const c = r.Candidates[0];
     assert.equal(c.StdOuter, 30.6); assert.equal(c.StdWidth, 4.1); assert.equal(c.StdDepth, 2.4);
-    assert.ok(Math.abs(c.OuterComp) < 1e-9);
+    assert.ok(Math.abs(c.FaceFit) < 1e-9);
   });
   test.it('線径 5.7 の標準溝は G=7.5・H=4.6', () => {
     const r = P.findORing({ outer: 160.7, use: 'FaceInner', table });
@@ -341,5 +341,24 @@ test.describe('findORing 平面固定（内圧用）', () => {
   });
   test.it('寸法なしはエラー', () => {
     assert.throws(() => P.findORing({ use: 'FaceInner', table }));
+  });
+});
+
+test.describe('findORing 平面固定（外圧用）', () => {
+  test.it('G25 の標準溝（d=24.4, G=4.1, H=2.4）で G25 が先頭', () => {
+    const r = P.findORing({ inner: 24.4, outer: 999, width: 4.1, depth: 2.4, use: 'FaceOuter', table });
+    assert.equal(r.Face, 'Outer');
+    const c = r.Candidates[0];
+    assert.equal(c.Name, 'G25');
+    assert.equal(c.StdInner, 24.4); assert.equal(c.StdOuter, null); assert.equal(c.StdWidth, 4.1); assert.equal(c.StdDepth, 2.4);
+    assert.ok(Math.abs(c.FaceFit) < 1e-9);
+    assert.ok(r.Candidates.every((x) => x.Series === 'G'));
+  });
+  test.it('溝内径が Oリング内径より小さい（はまらない）ものは除く', () => {
+    const r = P.findORing({ inner: 24.0, use: 'FaceOuter', table });
+    assert.ok(!r.Candidates.some((x) => x.Name === 'G25'));
+  });
+  test.it('寸法なしはエラー', () => {
+    assert.throws(() => P.findORing({ use: 'FaceOuter', table }), /溝の内径/);
   });
 });
