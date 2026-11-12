@@ -298,13 +298,18 @@
       Temp: '−25〜100', Note: 'NOK の公式資料ではなく販売店の掲載値。速度は掲載なし', Source: 'モノタロウ NOK パッキンLBHシリーズ https://www.monotaro.com/g/00269613/' },
     'DKI': { Rows: [['アイアンラバー（U801）', null, null, null]],
       Temp: '−35〜100', Note: 'NOK の公式資料ではなく販売店の掲載値。速度は掲載なし', Source: 'モノタロウ NOK パッキンDKIシリーズ https://www.monotaro.com/g/00269612/' },
-    // ---- ウェアリング（2026-11-12 追加、ユーザー指示）。阪上の表は圧力「-」。WR（NOK）・WPG（バルカー）は公開資料・販売店とも値なし ----
+    // ---- ウェアリング（2026-11-12 追加、ユーザー指示）。阪上の表は圧力「-」。WR（NOK）・WPG（バルカー）は製品の値がないので材質（WPG は材料の適用温度も）だけ ----
     'SW': { Rows: [['布入りフェノール（PB201）', null, null, '3']], Temp: '−55〜120', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/wear-rings-and-bearings/sw' },
     'SWA': { Rows: [['布入りフェノール（PB201）', null, null, '3']], Temp: '−55〜120', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/wear-rings-and-bearings/swa' },
     'SWB': { Rows: [['布入りフェノール（PB251）', null, null, '3']], Temp: '−55〜120', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/wear-rings-and-bearings/swb' },
     'SWO': { Rows: [['布入りポリエステル（PB271）', null, null, '3']], Temp: '−55〜120', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/wear-rings-and-bearings/swo' },
     'WPL': { Rows: [['布入りフェノール樹脂（432）', 44.1, 450, '0.04〜1']],
       Temp: '−30〜150', Note: '販売店が掲載しているバルカーの表の値（参考値・保証値ではない）', Source: 'パッキンランド「パッキンの使用範囲 - バルカー」 https://www.packing.co.jp/PACKING/vqpacking/vqpackingsiyohani1.htm' },
+    // WR・WPG は製品の使用範囲が見つからないので材質だけ（2026-11-12 ユーザー指示）。WPG の温度はバルカーのカタログ p.2「材料の種類と特性」のガラス入りポリアミドの適用温度
+    'WR': { Rows: [['布入りフェノール樹脂（NOK 12RS）', null, null, null]], Temp: '掲載なし',
+      Note: '材質だけ。温度・速度は公開資料に記載なし（NOK カタログの「適用範囲の目安」で確認）', Source: 'NOK WR 型 寸法表 https://www.edccorp.com.tw/UploadFile/PK/WR.pdf' },
+    'WPG': { Rows: [['ガラス入りポリアミド（432）', null, null, null]], Temp: '−55〜120（材料の値）',
+      Note: '製品の使用範囲は記載なし。温度は材料の適用温度、速度は記載なし', Source: 'バルカー 油圧用パッキン カタログ p.2・p.34 https://23330894.fs1.hubspotusercontent-na2.net/hubfs/23330894/product_document/hydraulic-packing_doc.pdf' },
     // ---- 海外：トレルボルグ（2026-11-12 追加、ユーザー指示。カタログの OPERATING CONDITIONS を日本語にしたもの）----
     'TGR-P': { Rows: [['Turcon シールリング＋Oリング', 60, 612, '15']], Temp: '−45〜200', Note: '温度は Oリングの材質による。往復動の周波数は 5 Hz まで。kgf/㎠ は MPa から換算。最大値は同時には使えない', Source: 'トレルボルグ Hydraulic Seals Catalog（Metric、2026年10月版） PDF p.249' },
     'TSS2K-P': { Rows: [['Turcon シールリング＋Oリング', 60, 612, '15']], Temp: '−45〜200', Note: '温度は Oリングの材質による。往復動の周波数は 5 Hz まで。kgf/㎠ は MPa から換算。最大値は同時には使えない', Source: 'トレルボルグ Hydraulic Seals Catalog（Metric、2026年10月版） PDF p.311' },
