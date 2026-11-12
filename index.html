@@ -81,6 +81,12 @@
   /* Oリングの使用範囲：硬さの札（2つの表で同じ色）と、材質の系統ごとの色 */
   .hd { display: inline-block; padding: 1px 8px; border-radius: 10px; color: #fff; font-weight: bold; font-size: 12px; }
   table.spec td.hdc { text-align: center; }
+  /* 使用範囲の値の確かさの札 */
+  .grade { display: inline-block; margin: 0 0 6px; padding: 3px 10px; border-radius: 12px; font-size: 13px; font-weight: bold; border: 1px solid; }
+  .g-maker { background: #E8F5E9; color: #1B5E20; border-color: #66BB6A; }
+  .g-dealer { background: #FFF8E1; color: #8D6E00; border-color: #FFB300; }
+  .g-tent { background: #FFEBEE; color: #B71C1C; border-color: #E57373; }
+  @media (min-width: 1100px) { .grade { font-size: 15px; } }
   .hd-A70 { background: #00897B; } .hd-A80 { background: #5E35B1; } .hd-A90 { background: #D81B60; }
   table.spec td.mt { border-left: 5px solid var(--mt); background: #F5F7F8; text-align: left; }
   .mt-NBR { --mt: #1E88E5; } .mt-FKM { --mt: #43A047; } .mt-VMQ { --mt: #FB8C00; } .mt-EPDM { --mt: #8E24AA; }
@@ -216,7 +222,7 @@
   <div class="card" id="resCard">
     <div id="msg">寸法を入力して［検索］を押してください。</div>
     <div id="results"></div>
-    <div class="hint disclaimer">※ 検索結果は参考値です。採用前に、必ず各メーカーのカタログ・JIS 規格で寸法と公差を確認してください。「未照合」の札は、出典の原本との照合がまだのデータです。</div>
+    <div class="hint disclaimer">※ 検索結果は参考値です。採用前に、必ず各メーカーのカタログ・JIS 規格で寸法と公差を確認してください。「未照合」の札は、出典の原本との照合がまだのデータです。使用範囲の黄色の札（販売店の掲載値・材料の値）は、メーカー公式の資料でまだ確認していない値です。</div>
   </div>
 </main>
 <script src="search.js"></script>
@@ -559,13 +565,22 @@
     var band = n < 75 ? 'A70' : n < 85 ? 'A80' : 'A90';
     return '<span class="hd hd-' + band + '">A' + n + '</span>';
   }
+  // 使用範囲の値の確かさの札（表の上に出す）
+  var GRADE = {
+    maker: ['g-maker', 'メーカー資料の値'],
+    dealer: ['g-dealer', '販売店の掲載値（メーカー公式で未確認）'],
+    material: ['g-dealer', '材料の値（製品の値ではない）'],
+    tentative: ['g-tent', '仮の値（JIS 未照合）']
+  };
+  function gradeTag(g) { var x = GRADE[g]; return x ? '<div class="grade ' + x[0] + '">使用範囲：' + x[1] + '</div>' : ''; }
   // Uパッキンの使用範囲（常用最高圧力・最高速度・温度）。製品の見出しの下に出す
   function specHtml(product) {
     var sp = Pakkin.PackingSpec[product];
     var mk = mkClass(product);
     if (!sp) return '<div class="spec none ' + mk + '">使用範囲（圧力・速度・温度）：メーカーの公開資料に記載なし。カタログで確認してください</div>';
+    var gt = gradeTag(sp.Grade);
     var hasHard = sp.Hard != null || sp.Rows.some(function (x) { return x[7] != null; });
-    return '<table class="spec ' + mk + '"><tr><th class="sc">' + esc(sp.Head || '材質') + '</th>' + (hasHard ? '<th class="sc">硬さ</th>' : '') + '<th class="sp">常用最高圧力<br>MPa {kgf/㎠}</th><th class="sv">最高速度<br>(m/s)</th><th class="st">温度<br>(℃)</th></tr>'
+    return gt + '<table class="spec ' + mk + '"><tr><th class="sc">' + esc(sp.Head || '材質') + '</th>' + (hasHard ? '<th class="sc">硬さ</th>' : '') + '<th class="sp">常用最高圧力<br>MPa {kgf/㎠}</th><th class="sv">最高速度<br>(m/s)</th><th class="st">温度<br>(℃)</th></tr>'
       + sp.Rows.map(function (x, i) {
         // x：[条件, MPa, kgf/㎠, 速度, 温度（材質ごと。なければ sp.Temp を全行で1つ）, BR使用時 MPa, BR使用時 kgf/㎠, 硬さ]
         var hc = !hasHard ? '' : x[7] != null ? '<td class="sc hdc">' + hardTag(x[7]) + '</td>'
@@ -610,7 +625,7 @@
     var hd = hardTag;
     // すきまの上限：大きい（はみ出しにくい）ほど緑、小さいほど赤
     var gap = function (v) { var t = Math.min(1, v / 0.7), hue = Math.round(t * 120); return 'background:hsl(' + hue + ',75%,82%);color:hsl(' + hue + ',80%,24%)'; };
-    return '<h2>Oリングの使用範囲</h2>'
+    return '<h2>Oリングの使用範囲</h2>' + gradeTag('maker')
       + '<table class="spec"><tr><th class="sc">材質</th><th class="sc">硬さ</th><th class="sv">最高速度<br>(m/s)</th><th class="st">温度<br>(℃)</th></tr>'
       + o.Materials.map(function (m, i) {
         return '<tr><td class="mt mt-' + esc(m[0].split('-')[0]) + '">' + esc(m[0]) + '</td><td class="sc">' + hd(m[1]) + '</td>'

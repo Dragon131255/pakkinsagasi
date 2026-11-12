@@ -81,7 +81,7 @@
     var mid = (c.SqueezeMin + c.SqueezeMax) / 2;
 
     var notes = [];
-    if (hasOuter) notes.push(fitName + ' ' + FaceFitMin + '〜' + FaceFitMax + '%');
+    if (hasOuter) notes.push(fitName + ' ' + FaceFitMin + '〜' + FaceFitMax + '%【仮の値・JIS 未照合】');
     if (hasDepth) notes.push('つぶし率 0%超・' + c.SqueezeMax + '% 以下');
     if (hasWidth) {
       notes.push('溝充填率 ' + FillMax + '% 以下');
@@ -512,6 +512,13 @@
     }
     return all;
   }
+
+  // 使用範囲の値の確かさ（画面で札を出す。2026-11-12 発表用、ユーザー指示）
+  //   maker＝メーカーの資料の値、dealer＝販売店の掲載値（メーカー公式で未確認）、material＝材料の値（製品の値ではない）
+  var SpecGrade = { dealer: ['UPH', 'LBH', 'DKI', 'UHP', 'MLP', 'MLR', 'DHS', 'WPL'], material: ['WPG'] };
+  Object.keys(PackingSpec).forEach(function (k) {
+    PackingSpec[k].Grade = SpecGrade.dealer.indexOf(k) >= 0 ? 'dealer' : SpecGrade.material.indexOf(k) >= 0 ? 'material' : 'maker';
+  });
 
   // ---- Oリングの使用範囲（2026-11-12 追加、ユーザー指示。出典：さくらシール）----
   // Materials：[材質, 硬さ, 使用温度範囲の推奨値 ℃, ページ]。速度は出典に記載なし

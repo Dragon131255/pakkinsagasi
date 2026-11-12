@@ -427,3 +427,17 @@ test.describe('PackingMaterial', () => {
     Object.values(P.TrelleborgProducts).flat().forEach((k) => assert.ok(P.PackingMaterial[k], k));
   });
 });
+
+test.describe('使用範囲の値の確かさ', () => {
+  test.it('販売店の値・材料の値に札が付き、ほかはメーカー資料', () => {
+    ['UPH', 'LBH', 'DKI', 'UHP', 'MLP', 'MLR', 'DHS', 'WPL'].forEach((k) => assert.equal(P.PackingSpec[k].Grade, 'dealer', k));
+    assert.equal(P.PackingSpec.WPG.Grade, 'material');
+    ['SKY', 'KY', 'SDR', 'SW', 'WR', 'TGR-P', 'WRM'].forEach((k) => assert.equal(P.PackingSpec[k].Grade, 'maker', k));
+    // 販売店の値は出典も販売店
+    Object.values(P.PackingSpec).filter((s) => s.Grade === 'dealer').forEach((s) => assert.match(s.Source, /パッキンランド|モノタロウ/));
+  });
+  test.it('平面溝の当たり代は仮の値と判定条件に出る', () => {
+    const r = P.findORing({ outer: 30.6, use: 'FaceInner', table });
+    assert.ok(r.Notes.some((n) => n.includes('仮の値')));
+  });
+});
