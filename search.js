@@ -309,9 +309,9 @@
       Note: '販売店が掲載しているバルカーの表の値（参考値・保証値ではない）。硬さはバルカーのカタログ p.2 の材料の Hs（タフレタン R5590・R5990、ニトリルゴム B0390、スーパーラバー B5290、ふっ素ゴム D0390）', Source: 'パッキンランド「パッキンの使用範囲 - バルカー」 https://www.packing.co.jp/PACKING/vqpacking/vqpackingsiyohani1.htm' },
     // ---- ダストシール（2026-11-12 追加、ユーザー指示）。ダストシールに圧力の値はない（MPa は null＝「―」）。速度 null＝掲載なし ----
     'SDR': { Rows: [['NBR（RN906）・FKM［RF905］', null, null, '1 [0.5]']],
-      Temp: '−25〜100 [−5〜150]', Note: '[ ] 内は FKM', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/wipers/sdr' },
-    'DHS': { Rows: [['タフレタン（E9625）', null, null, '0.04〜1', '−20〜80'], ['ニトリルゴム（2060）', null, null, '0.04〜1', '−30〜80'], ['ふっ素ゴム（4060）', null, null, '0.04〜1', '−10〜150']],
-      Note: '販売店が掲載しているバルカーの表の値（参考値・保証値ではない）', Source: 'パッキンランド「パッキンの使用範囲 - バルカー」 https://www.packing.co.jp/PACKING/vqpacking/vqpackingsiyohani1.htm' },
+      Temp: '−25〜100 [−5〜150]', Hard: 86, HardNote: 'RN906・RF905 とも', Note: '[ ] 内は FKM。硬さは阪上の材質ページ（デュロメータA）', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/wipers/sdr' },
+    'DHS': { Rows: [['タフレタン（E9625）', null, null, '0.04〜1', '−20〜80', null, null, 90], ['ニトリルゴム（2060）', null, null, '0.04〜1', '−30〜80', null, null, 88], ['ふっ素ゴム（4060）', null, null, '0.04〜1', '−10〜150', null, null, 90]],
+      Note: '販売店が掲載しているバルカーの表の値（参考値・保証値ではない）。硬さはバルカーのカタログ p.2 の材料の Hs（タフレタン R5590、ニトリルゴム B0390、ふっ素ゴム D0390）', Source: 'パッキンランド「パッキンの使用範囲 - バルカー」 https://www.packing.co.jp/PACKING/vqpacking/vqpackingsiyohani1.htm' },
     'LBH': { Rows: [['ニトリルゴム（A505）', null, null, null]],
       Temp: '−25〜100', Note: 'NOK の公式資料ではなく販売店の掲載値。速度は掲載なし', Source: 'モノタロウ NOK パッキンLBHシリーズ https://www.monotaro.com/g/00269613/' },
     'DKI': { Rows: [['アイアンラバー（U801）＋金属環 SPCC', null, null, null]],

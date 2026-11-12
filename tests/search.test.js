@@ -432,5 +432,6 @@ test.describe('PackingSpec 硬さ', () => {
   test.it('SKY・KY は 86、バルカーは材料ごとの Hs', () => {
     assert.equal(P.PackingSpec.SKY.Hard, 86); assert.equal(P.PackingSpec.KY.Hard, 86);
     ['UHP', 'MLP', 'MLR'].forEach((k) => assert.deepEqual(P.PackingSpec[k].Rows.map((r) => r[7]), [90, 88, 91, 90]));
+    assert.equal(P.PackingSpec.SDR.Hard, 86); assert.deepEqual(P.PackingSpec.DHS.Rows.map((r) => r[7]), [90, 88, 90]);
   });
 });
