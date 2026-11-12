@@ -146,6 +146,7 @@
 - 使用範囲（圧力・速度・温度）を製品の見出しの下に表で出す（2026-11-12 追加、ユーザー指示。`PackingSpec`）。カタログの OPERATING CONDITIONS を日本語にしたもの（出典はカタログの PDF ページ）
   - TGR-P・TSS2K-P・TSS2K-R・TGR-R：60 MPa（{612} は換算値）・15 m/s・−45〜200℃（Oリング材質による）
   - TEX2：Turcon 15 m/s・−45〜200℃、Zurcon Z53/Z54 2 m/s・−45〜110℃、Z80 2 m/s・−60〜80℃／WRM：1 m/s・−30〜110℃／SLY-P：15 m/s・−60〜150℃（材質により 200）。この3製品は圧力の値なし
+- 各カードに材質を出す（`PackingMaterial`。2026-11-12 ユーザー指示。カタログの MATERIALS）：TGR・TSS2K・TEX2 は Turcon M12（汎用）／T46 ＋ Oリング NBR 70 Shore A・FKM 70 Shore A、WRM は NBR 90 Shore A、SLY-P は Turcite M12／T47／T51
 - 呼び番号でまとめて探すときも含める（`findAllByName` の `tbTable`、結果は `Trelleborg`）
 
 ## 構成

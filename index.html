@@ -509,6 +509,7 @@
         + '<dt class="cW">' + t.W + '</dt><dd><b>' + r.Width + '</b>' + tolHtml(r.TolWidth) + '</dd>'
         + (r.DiaD1 && t.C ? '<dt class="cC">' + t.C + '</dt><dd><b>' + esc(r.DiaD1) + '</b>' + tolHtml(r.TolD1) + '</dd>' : '')
         + (r.H ? '<dt>' + t.H + '</dt><dd>' + esc(r.H) + '</dd>' : '')
+        + (Pakkin.PackingMaterial[r.Product] ? '<dt>材質</dt><dd>' + esc(Pakkin.PackingMaterial[r.Product]) + '</dd>' : '')
         + '<dt>メーカー</dt><dd>' + mkTag(r.Product) + '</dd>'
         + '</dl></div>';
       idx++;

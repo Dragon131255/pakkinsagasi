@@ -268,7 +268,7 @@
   // ---- 阪上パッキン（油圧シリンダ用） ----
   var PackingDiaTol = 0.5, PackingWidthTol = 0.5;   // d・D・溝幅の許容差 [mm]
   var PackingProducts = ['SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH'];   // 検索結果に出す製品（阪上は一時的に SKY・KY だけ）
-  // Uパッキン・ウェアリングの材質（カードに出す。2026-11-12 ユーザー指示）。出典：阪上は製品ページの使用範囲の表、バルカーはカタログ p.4・6・17、NOK は UPH 型 寸法表
+  // Uパッキン・ウェアリング・海外の材質（カードに出す。2026-11-12 ユーザー指示）。出典：阪上は製品ページの使用範囲の表、バルカーはカタログ p.4・6・17、NOK は UPH 型 寸法表
   var PackingMaterial = {
     'SKY': 'NBR（RN906）標準／FKM（RF905・RF907）', 'KY': 'NBR（RN906）標準／FKM（RF905・RF907）',
     'UHP': 'タフレタン（E9625・TE9625）／ニトリルゴム（2060）／ふっ素ゴム（4060）',
@@ -277,7 +277,10 @@
     'UPH': 'NBR（A505）標準／FKM（F357）耐熱',
     // ウェアリング（阪上は製品ページの使用範囲の表、WR は NOK の寸法表、WPL・WPG はバルカーのカタログ p.33・34）
     'SW': '布入りフェノール（PB201）', 'SWA': '布入りフェノール（PB201）', 'SWB': '布入りフェノール（PB251）', 'SWO': '布入りポリエステル（PB271）',
-    'WR': '布入りフェノール樹脂（NOK 12RS）', 'WPL': '布入りフェノール樹脂（432）', 'WPG': 'ガラス入りポリアミド（432）'
+    'WR': '布入りフェノール樹脂（NOK 12RS）', 'WPL': '布入りフェノール樹脂（432）', 'WPG': 'ガラス入りポリアミド（432）',
+    // 海外：トレルボルグ（カタログの MATERIALS。Oリングの材質記号は NBR＝N、FKM＝V。セットコード M12N など）
+    'TGR-P': 'Turcon M12（汎用）／T46 ＋ Oリング NBR 70 Shore A・FKM 70 Shore A', 'TGR-R': 'Turcon M12（汎用）／T46 ＋ Oリング NBR 70 Shore A・FKM 70 Shore A', 'TSS2K-P': 'Turcon M12（汎用）／T46 ＋ Oリング NBR 70 Shore A・FKM 70 Shore A', 'TSS2K-R': 'Turcon M12（汎用）／T46 ＋ Oリング NBR 70 Shore A・FKM 70 Shore A', 'TEX2': 'Turcon M12（汎用）／T46 ＋ Oリング NBR 70 Shore A・FKM 70 Shore A',
+    'WRM': 'NBR 90 Shore A', 'SLY-P': 'Turcite M12（汎用）／T47／T51'
   };
   // 使用範囲（各メーカーのホームページ・カタログの値。2026-11-12 取得、ユーザー指示）
   //   Head：表の1列目の見出し（省略時は「材質」。SKY・KY は「条件」）。Rows：材質（または条件）ごとの 常用最高圧力 [MPa]・{kgf/㎠}・最高速度 [m/s]。Temp：温度 [℃]。[ ] 内は FKM
