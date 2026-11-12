@@ -573,6 +573,11 @@
       }).join('') + '</table></div>'
       + '<div class="spec note">はみ出し限界（バックアップリングなし）。すきまは直径すきま＝シリンダ内径 − ピストン外径。これを超えるときはバックアップリングを併用する。出典：さくらシール「Oリングのはみ出し」 ' + esc(e.Source) + '</div>';
   }
+  // Oリングのカードに出す標準材質（JIS B 2401 の 1種A）。ほかの材質は「Oリングの使用範囲」の表
+  function orMatHtml() {
+    var m = Pakkin.ORingSpec.Materials[0];
+    return '<dt>材質</dt><dd>' + esc(m[0]) + ' 標準（' + esc(m[2]) + '℃）</dd>';
+  }
   function oringHtml(res, prefix) {
     var html = '';
     ['P', 'G'].forEach(function (s) {
@@ -588,7 +593,7 @@
             + (fin ? '<dt class="cD">溝外径 D</dt><dd>' + fmt(r.StdOuter) + '</dd>' : '<dt class="cd">溝内径 d</dt><dd>' + fmt(r.StdInner) + '</dd>')
             + '<dt class="cW">溝幅 G</dt><dd>' + fmt(r.StdWidth) + '（' + esc(r.TolWidth) + '）</dd>'
             + '<dt class="cC">溝深さ H</dt><dd>' + fmt(r.StdDepth) + '（' + esc(r.TolDepth) + '）</dd>'
-            + '</dl></div>';
+            + orMatHtml() + '</dl></div>';
           return;
         }
         var ov = [{ k: 'd', l: 'd', v: withTol(fmt(r.StdInner), r.TolInner) }, { k: 'D', l: 'D', v: withTol(fmt(r.StdOuter), r.TolOuter) }, { k: 'W', l: 'G', v: withTol(fmt(r.StdWidth), r.TolWidth) }];
@@ -597,7 +602,7 @@
           + '<dt class="cd">溝内径 d</dt><dd>' + fmt(r.StdInner) + '（' + esc(r.TolInner) + '）</dd>'
           + '<dt class="cD">溝外径 D</dt><dd>' + fmt(r.StdOuter) + '（' + esc(r.TolOuter) + '）</dd>'
           + '<dt class="cW">溝幅 G</dt><dd>' + fmt(r.StdWidth) + '（' + esc(r.TolWidth) + '）</dd>'
-          + '</dl></div>';
+          + orMatHtml() + '</dl></div>';
       });
     });
     if (html) html += oringSpecHtml();
