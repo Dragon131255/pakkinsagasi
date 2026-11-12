@@ -80,6 +80,7 @@
   table.spec td.sg { background: #FFEBEE; color: #B71C1C; }
   /* Oリングの使用範囲：硬さの札（2つの表で同じ色）と、材質の系統ごとの色 */
   .hd { display: inline-block; padding: 1px 8px; border-radius: 10px; color: #fff; font-weight: bold; font-size: 12px; }
+  table.spec td.hdc { text-align: center; }
   .hd-A70 { background: #00897B; } .hd-A80 { background: #5E35B1; } .hd-A90 { background: #D81B60; }
   table.spec td.mt { border-left: 5px solid var(--mt); background: #F5F7F8; text-align: left; }
   .mt-NBR { --mt: #1E88E5; } .mt-FKM { --mt: #43A047; } .mt-VMQ { --mt: #FB8C00; } .mt-EPDM { --mt: #8E24AA; }
@@ -522,18 +523,27 @@
     });
     return h;
   }
+  // 硬さの札：A70 付近・A80 付近・A90 付近で色を分ける（Oリングの使用範囲の表と同じ色）
+  function hardTag(v) {
+    var n = typeof v === 'number' ? v : +String(v).replace(/\D/g, '');
+    var band = n < 75 ? 'A70' : n < 85 ? 'A80' : 'A90';
+    return '<span class="hd hd-' + band + '">A' + n + '</span>';
+  }
   // Uパッキンの使用範囲（常用最高圧力・最高速度・温度）。製品の見出しの下に出す
   function specHtml(product) {
     var sp = Pakkin.PackingSpec[product];
     var mk = mkClass(product);
     if (!sp) return '<div class="spec none ' + mk + '">使用範囲（圧力・速度・温度）：メーカーの公開資料に記載なし。カタログで確認してください</div>';
-    return '<table class="spec ' + mk + '"><tr><th class="sc">' + esc(sp.Head || '材質') + '</th><th class="sp">常用最高圧力<br>MPa {kgf/㎠}</th><th class="sv">最高速度<br>(m/s)</th><th class="st">温度<br>(℃)</th></tr>'
+    var hasHard = sp.Hard != null || sp.Rows.some(function (x) { return x[7] != null; });
+    return '<table class="spec ' + mk + '"><tr><th class="sc">' + esc(sp.Head || '材質') + '</th>' + (hasHard ? '<th class="sc">硬さ</th>' : '') + '<th class="sp">常用最高圧力<br>MPa {kgf/㎠}</th><th class="sv">最高速度<br>(m/s)</th><th class="st">温度<br>(℃)</th></tr>'
       + sp.Rows.map(function (x, i) {
-        // x：[条件, MPa, kgf/㎠, 速度, 温度（材質ごと。なければ sp.Temp を全行で1つ）, BR使用時 MPa, BR使用時 kgf/㎠]
+        // x：[条件, MPa, kgf/㎠, 速度, 温度（材質ごと。なければ sp.Temp を全行で1つ）, BR使用時 MPa, BR使用時 kgf/㎠, 硬さ]
+        var hc = !hasHard ? '' : x[7] != null ? '<td class="sc hdc">' + hardTag(x[7]) + '</td>'
+          : sp.Hard != null ? (i === 0 ? '<td class="sc hdc" rowspan="' + sp.Rows.length + '">' + hardTag(sp.Hard) + (sp.HardNote ? '<br><small>' + esc(sp.HardNote) + '</small>' : '') + '</td>' : '') : '<td class="sc hdc">—</td>';
         var p = x[1] == null ? '―' : '<b>' + x[1] + '</b> {' + x[2] + '}' + (x[5] != null ? '<br><small>BR使用 <b>' + x[5] + '</b> {' + x[6] + '}</small>' : '');
         var t = x[4] != null ? '<td class="st"><b>' + esc(x[4]) + '</b></td>'
           : i === 0 ? '<td class="st" rowspan="' + sp.Rows.length + '"><b>' + esc(sp.Temp) + '</b></td>' : '';
-        return '<tr><td class="sc">' + esc(x[0]) + '</td><td class="sp">' + p + '</td><td class="sv">' + (x[3] == null ? '掲載なし' : '<b>' + esc(x[3]) + '</b>') + '</td>' + t + '</tr>';
+        return '<tr><td class="sc">' + esc(x[0]) + '</td>' + hc + '<td class="sp">' + p + '</td><td class="sv">' + (x[3] == null ? '掲載なし' : '<b>' + esc(x[3]) + '</b>') + '</td>' + t + '</tr>';
       }).join('')
       + '</table><div class="spec note">' + (sp.Note ? esc(sp.Note) + '。' : '') + '出典：' + esc(sp.Source) + '</div>';
   }
@@ -567,7 +577,7 @@
   // Oリングの使用範囲：材質ごとの使用温度と、バックアップリングなしのはみ出し限界（Oリングの結果の下に1回だけ出す）
   function oringSpecHtml() {
     var o = Pakkin.ORingSpec, e = o.Extrusion;
-    var hd = function (x) { return '<span class="hd hd-' + esc(x) + '">' + esc(x) + '</span>'; };
+    var hd = hardTag;
     // すきまの上限：大きい（はみ出しにくい）ほど緑、小さいほど赤
     var gap = function (v) { var t = Math.min(1, v / 0.7), hue = Math.round(t * 120); return 'background:hsl(' + hue + ',75%,82%);color:hsl(' + hue + ',80%,24%)'; };
     return '<h2>Oリングの使用範囲</h2>'
