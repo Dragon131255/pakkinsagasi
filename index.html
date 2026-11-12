@@ -97,11 +97,38 @@
   h2 .mkTag { margin-left: 8px; }
   .ring.sel { outline: 3px solid var(--main); }
   .figttl { font-weight: bold; font-size: 14px; margin-bottom: 6px; }
+  /* 候補一覧：検索結果の一番上に、全候補を1行ずつ（行を押すとその候補を選ぶ） */
+  table.cand { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 14px; }
+  table.cand th { background: #455A64; color: #fff; padding: 6px 8px; text-align: left; font-weight: bold; }
+  table.cand td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  table.cand tr.cr { cursor: pointer; }
+  table.cand tr.cr:hover td { background: #E3F2FD; }
+  table.cand tr.cr.sel td { background: #BBDEFB; }
+  table.cand td.cn { font-weight: bold; white-space: nowrap; }
+  table.cand td.cv span { white-space: nowrap; margin-right: 12px; }
+  table.cand td.cv b { color: var(--text); }
+  /* PC の大きい画面（発表で映すとき）：左に入力と図、右に結果。文字を大きくする */
+  @media (min-width: 1100px) {
+    main { max-width: 1560px; display: grid; grid-template-columns: minmax(420px, 36%) 1fr; gap: 16px; align-items: start; }
+    #leftCol { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+    #resCard { min-height: 200px; }
+    #msg { font-size: 16px; }
+    table.cand { font-size: 18px; }
+    table.cand th, table.cand td { padding: 8px 10px; }
+    .ring .name { font-size: 20px; }
+    .ring dl { font-size: 17px; }
+    .ring dd b { font-size: 18px; }
+    .ring .tol { font-size: 15px; }
+    table.spec { font-size: 15px; }
+    div.spec { font-size: 13px; }
+    #results h2 { font-size: 20px; }
+  }
 </style>
 </head>
 <body>
 <header>◎ パッキン探し ─ Oリング・油圧パッキン選定</header>
 <main>
+  <div id="leftCol">
   <form class="card" id="form" novalidate>
     <div class="row"><label for="pname">検索</label>
       <input id="pname" autocomplete="off" autocapitalize="characters" placeholder="例 P20、SKY40（種類を選ばなくても探せます）"></div>
@@ -184,8 +211,9 @@
       <div class="hint">出典：<span id="pkSrc">阪上製作所 <span class="figP">SKY</span>パッキン 製品ページ</span>。検索結果をタップすると、その製品の図に切り替わります。</div>
     </div>
   </div>
+  </div>
 
-  <div class="card">
+  <div class="card" id="resCard">
     <div id="msg">寸法を入力して［検索］を押してください。</div>
     <div id="results"></div>
     <div class="hint disclaimer">※ 検索結果は参考値です。採用前に、必ず各メーカーのカタログ・JIS 規格で寸法と公差を確認してください。「未照合」の札は、出典の原本との照合がまだのデータです。</div>
@@ -366,12 +394,14 @@
     }).join('') : '';
   }
   $('results').addEventListener('click', function (e) {
-    var card = e.target.closest('.ring.pk, .ring.or');
+    var tr = e.target.closest('table.cand tr.cr');
+    var card = tr ? document.querySelectorAll('#results .ring')[+tr.getAttribute('data-i')] : e.target.closest('.ring.pk, .ring.or');
     if (!card) return;
-    [].forEach.call(document.querySelectorAll('.ring.sel'), function (el) { el.classList.remove('sel'); });
-    card.classList.add('sel');
+    markSel(card);
     showFigFor(card);
-    $('figCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // 大きい画面：左の列の中で図までスクロールする（結果の画面は動かさない）。狭い画面：ページを図まで動かす
+    if (WIDE.matches) $('leftCol').scrollTo({ top: $('leftCol').scrollTop + $('figCard').getBoundingClientRect().top - $('leftCol').getBoundingClientRect().top, behavior: 'smooth' });
+    else $('figCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   // 阪上パッキンは運動用なので「用途」は使わない
@@ -643,11 +673,36 @@
     setPackingFig(card.getAttribute('data-product'));
     markFig(card);
   }
+  var WIDE = window.matchMedia('(min-width: 1100px)');
+  // 候補一覧：描いた結果のカードから、呼び番号・主な寸法（公差なし）・メーカーを1行ずつ並べる
+  function candHtml() {
+    var cards = document.querySelectorAll('#results .ring');
+    if (!cards.length) return '';
+    return '<table class="cand"><tr><th>呼び番号</th><th>主な寸法 [mm]</th><th>メーカー</th></tr>'
+      + [].map.call(cards, function (c, i) {
+        var nm = c.querySelector('.name'), name = nm ? nm.firstChild.textContent : '';
+        var vals = JSON.parse(c.getAttribute('data-vals') || '[]');
+        var p = c.getAttribute('data-product');
+        return '<tr class="cr" data-i="' + i + '"><td class="cn">' + esc(name) + '</td><td class="cv">'
+          + vals.map(function (x) { return '<span><span class="' + (MARK_CLASS[x.k] || '') + '">' + esc(x.l) + '</span> <b>' + esc(String(x.v).split('（')[0]) + '</b></span>'; }).join('')
+          + '</td><td>' + (p ? mkTag(p) : 'JIS B 2401') + '</td></tr>';
+      }).join('') + '</table>';
+  }
+  // 候補一覧とカードの「選択中」をそろえる
+  function markSel(card) {
+    [].forEach.call(document.querySelectorAll('.ring.sel, table.cand tr.sel'), function (el) { el.classList.remove('sel'); });
+    if (!card) return;
+    card.classList.add('sel');
+    var i = [].indexOf.call(document.querySelectorAll('#results .ring'), card);
+    var tr = document.querySelector('table.cand tr.cr[data-i="' + i + '"]');
+    if (tr) tr.classList.add('sel');
+  }
   // 結果を出したあと、先頭の結果を図に示す
   function showResults(html) {
     $('results').innerHTML = html;
+    if (html) $('results').insertAdjacentHTML('afterbegin', candHtml());
     var first = document.querySelector('#results .ring');
-    if (first) showFigFor(first); else { markFig(null); markOring(null); }
+    if (first) { markSel(first); showFigFor(first); } else { markFig(null); markOring(null); }
     if (html) $('msg').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
