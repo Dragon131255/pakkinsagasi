@@ -383,3 +383,11 @@ test.describe('PackingSpec バルカー', () => {
     assert.deepEqual(P.PackingSpec.UHP.Rows.map((r) => r[4]), ['−20〜80', '−30〜80', '−25〜120', '−10〜150']);
   });
 });
+
+test.describe('PackingSpec ダストシール', () => {
+  test.it('対象4製品すべてに使用範囲があり、圧力は null', () => {
+    P.DustProducts.forEach((k) => { assert.ok(P.PackingSpec[k], k); P.PackingSpec[k].Rows.forEach((r) => assert.equal(r[1], null)); });
+    assert.equal(P.PackingSpec.SDR.Rows[0][3], '1 [0.5]');
+    assert.equal(P.PackingSpec.LBH.Temp, '−25〜100'); assert.equal(P.PackingSpec.DKI.Temp, '−35〜100');
+  });
+});

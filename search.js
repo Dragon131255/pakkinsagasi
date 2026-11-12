@@ -288,7 +288,16 @@
       Note: '販売店が掲載しているバルカーの表の値（参考値・保証値ではない）', Source: 'パッキンランド「パッキンの使用範囲 - バルカー」 https://www.packing.co.jp/PACKING/vqpacking/vqpackingsiyohani1.htm' },
     'MLR': { Rows: [['タフレタン（E9625・TE9625）', 34.3, 350, '0.04〜1', '−20〜80', 68.6, 700], ['ニトリルゴム（2060）', 13.7, 140, '0.04〜1', '−30〜80', 34.3, 350],
       ['スーパーラバー（2060）', 20.6, 210, '0.04〜1', '−25〜120', 44.1, 450], ['ふっ素ゴム（4060）', 13.7, 140, '0.04〜1', '−10〜150', 34.3, 350]],
-      Note: '販売店が掲載しているバルカーの表の値（参考値・保証値ではない）', Source: 'パッキンランド「パッキンの使用範囲 - バルカー」 https://www.packing.co.jp/PACKING/vqpacking/vqpackingsiyohani1.htm' }
+      Note: '販売店が掲載しているバルカーの表の値（参考値・保証値ではない）', Source: 'パッキンランド「パッキンの使用範囲 - バルカー」 https://www.packing.co.jp/PACKING/vqpacking/vqpackingsiyohani1.htm' },
+    // ---- ダストシール（2026-11-12 追加、ユーザー指示）。ダストシールに圧力の値はない（MPa は null＝「―」）。速度 null＝掲載なし ----
+    'SDR': { Rows: [['NBR（RN906）・FKM［RF905］', null, null, '1 [0.5]']],
+      Temp: '−25〜100 [−5〜150]', Note: '[ ] 内は FKM', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/wipers/sdr' },
+    'DHS': { Rows: [['タフレタン（E9625）', null, null, '0.04〜1', '−20〜80'], ['ニトリルゴム（2060）', null, null, '0.04〜1', '−30〜80'], ['ふっ素ゴム（4060）', null, null, '0.04〜1', '−10〜150']],
+      Note: '販売店が掲載しているバルカーの表の値（参考値・保証値ではない）', Source: 'パッキンランド「パッキンの使用範囲 - バルカー」 https://www.packing.co.jp/PACKING/vqpacking/vqpackingsiyohani1.htm' },
+    'LBH': { Rows: [['ニトリルゴム（A505）', null, null, null]],
+      Temp: '−25〜100', Note: 'NOK の公式資料ではなく販売店の掲載値。速度は掲載なし', Source: 'モノタロウ NOK パッキンLBHシリーズ https://www.monotaro.com/g/00269613/' },
+    'DKI': { Rows: [['アイアンラバー（U801）', null, null, null]],
+      Temp: '−35〜100', Note: 'NOK の公式資料ではなく販売店の掲載値。速度は掲載なし', Source: 'モノタロウ NOK パッキンDKIシリーズ https://www.monotaro.com/g/00269612/' }
   };
 
   // 溝寸法の公差（出典：阪上製作所の寸法指示図）

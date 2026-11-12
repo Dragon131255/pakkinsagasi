@@ -1,5 +1,5 @@
 // ホーム画面から開いたとき用。通信できるときは常に最新を取りに行き、圏外のときだけ保存した分を使う
-var CACHE = 'pakkinsagasi-v36';
+var CACHE = 'pakkinsagasi-v37';
 var FILES = ['./', 'index.html', 'search.js', 'data/oring_jis_b2401.csv', 'data/sakagami_hydraulic.csv', 'data/dust_seal.csv', 'data/wear_ring.csv', 'data/trelleborg.csv', 'images/oring-face-inner.png', 'images/oring-face-outer.png', 'images/sky-piston.png', 'images/sky-rod.png', 'images/ky-piston.png', 'images/ky-rod.png', 'images/uhp-piston.png', 'images/mlp-piston.png', 'images/mlr-rod.png', 'images/uph-piston.png', 'images/uph-rod.png', 'images/sdr-rod.png', 'images/lbh-rod.png', 'images/dhs-rod.png', 'images/dki-rod.png', 'images/sw-piston.png', 'images/swa-piston.png', 'images/swb-piston.png', 'images/swo-piston.png', 'images/wr-piston.png', 'images/wpl-piston.png', 'images/wpg-piston.png', 'images/tgr-p-piston.png', 'images/tss2k-p-piston.png', 'images/tss2k-r-rod.png', 'images/tgr-r-rod.png', 'images/tex2-rod.png', 'images/wrm-rod.png', 'images/sly-p-piston.png', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', function (e) {
