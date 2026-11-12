@@ -418,3 +418,9 @@ test.describe('PackingSpec トレルボルグ', () => {
     assert.equal(P.PackingSpec.WRM.Temp, '−30〜110');
   });
 });
+
+test.describe('PackingMaterial', () => {
+  test.it('検索対象の Uパッキンすべてに材質がある', () => {
+    P.PackingProducts.forEach((k) => assert.ok(P.PackingMaterial[k], k));
+  });
+});

@@ -268,6 +268,14 @@
   // ---- 阪上パッキン（油圧シリンダ用） ----
   var PackingDiaTol = 0.5, PackingWidthTol = 0.5;   // d・D・溝幅の許容差 [mm]
   var PackingProducts = ['SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH'];   // 検索結果に出す製品（阪上は一時的に SKY・KY だけ）
+  // Uパッキンの材質（カードに出す。2026-11-12 ユーザー指示）。出典：阪上は製品ページの使用範囲の表、バルカーはカタログ p.4・6・17、NOK は UPH 型 寸法表
+  var PackingMaterial = {
+    'SKY': 'NBR（RN906）標準／FKM（RF905・RF907）', 'KY': 'NBR（RN906）標準／FKM（RF905・RF907）',
+    'UHP': 'タフレタン（E9625・TE9625）／ニトリルゴム（2060）／ふっ素ゴム（4060）',
+    'MLP': 'タフレタン（E9625・TE9625）／ニトリルゴム（2060）／ふっ素ゴム（4060）',
+    'MLR': 'タフレタン（E9625・TE9625）／ニトリルゴム（2060）／ふっ素ゴム（4060）',
+    'UPH': 'NBR（A505）標準／FKM（F357）耐熱'
+  };
   // 使用範囲（各メーカーのホームページ・カタログの値。2026-11-12 取得、ユーザー指示）
   //   Head：表の1列目の見出し（省略時は「材質」。SKY・KY は「条件」）。Rows：材質（または条件）ごとの 常用最高圧力 [MPa]・{kgf/㎠}・最高速度 [m/s]。Temp：温度 [℃]。[ ] 内は FKM
   var PackingSpec = {
@@ -516,7 +524,7 @@
   };
 
   var api = { findAllByName: findAllByName, parseTable: parseTable, findORing: findORing, parsePackingTable: parsePackingTable, findPacking: findPacking, DustProducts: DustProducts, WearProducts: WearProducts, MaxResults: MaxResults,
-    PackingProducts: PackingProducts, PackingSpec: PackingSpec, ORingSpec: ORingSpec, TrelleborgProducts: TrelleborgProducts, NameMaxResults: NameMaxResults, formatPackingTol: formatPackingTol };
+    PackingProducts: PackingProducts, PackingSpec: PackingSpec, PackingMaterial: PackingMaterial, ORingSpec: ORingSpec, TrelleborgProducts: TrelleborgProducts, NameMaxResults: NameMaxResults, formatPackingTol: formatPackingTol };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Pakkin = api;
 })(this);
