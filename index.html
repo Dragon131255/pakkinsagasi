@@ -71,7 +71,9 @@
   table.spec td.sc { background: #F5F7F8; text-align: left; color: var(--text); }
   table.spec td.sp { background: #FFEBEE; color: #B71C1C; }
   table.spec td.sv { background: #E3F2FD; color: #0D47A1; }
-  table.spec td.st { background: #FFF3E0; color: #BF360C; border-bottom: 0; }
+  table.spec td.st { background: #FFF3E0; color: #BF360C; }
+  table.spec td.st[rowspan] { border-bottom: 0; }
+  table.spec td small { font-size: 12px; }
   table.spec td b { font-size: 16px; }
   div.spec { font-size: 12px; color: var(--sub); margin: 0 0 8px; word-break: break-all; }
   div.spec.none { background: #ECEFF1; color: #455A64; border-left: 6px solid var(--mk, var(--main)); border-radius: 6px; padding: 8px 10px; font-size: 13px; }
@@ -515,8 +517,11 @@
     if (!sp) return '<div class="spec none ' + mk + '">使用範囲（圧力・速度・温度）：メーカーの公開資料に記載なし。カタログで確認してください</div>';
     return '<table class="spec ' + mk + '"><tr><th class="sc">条件</th><th class="sp">常用最高圧力<br>MPa {kgf/㎠}</th><th class="sv">最高速度<br>(m/s)</th><th class="st">温度<br>(℃)</th></tr>'
       + sp.Rows.map(function (x, i) {
-        return '<tr><td class="sc">' + esc(x[0]) + '</td><td class="sp"><b>' + x[1] + '</b> {' + x[2] + '}</td><td class="sv"><b>' + esc(x[3]) + '</b></td>'
-          + (i === 0 ? '<td class="st" rowspan="' + sp.Rows.length + '"><b>' + esc(sp.Temp) + '</b></td>' : '') + '</tr>';
+        // x：[条件, MPa, kgf/㎠, 速度, 温度（材質ごと。なければ sp.Temp を全行で1つ）, BR使用時 MPa, BR使用時 kgf/㎠]
+        var p = '<b>' + x[1] + '</b> {' + x[2] + '}' + (x[5] != null ? '<br><small>BR使用 <b>' + x[5] + '</b> {' + x[6] + '}</small>' : '');
+        var t = x[4] != null ? '<td class="st"><b>' + esc(x[4]) + '</b></td>'
+          : i === 0 ? '<td class="st" rowspan="' + sp.Rows.length + '"><b>' + esc(sp.Temp) + '</b></td>' : '';
+        return '<tr><td class="sc">' + esc(x[0]) + '</td><td class="sp">' + p + '</td><td class="sv"><b>' + esc(x[3]) + '</b></td>' + t + '</tr>';
       }).join('')
       + '</table><div class="spec note">' + esc(sp.Note) + '。出典：' + esc(sp.Source) + '</div>';
   }

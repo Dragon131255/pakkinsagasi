@@ -375,3 +375,11 @@ test.describe('PackingSpec（使用範囲）', () => {
     assert.equal(P.PackingSpec.UPH.Temp, '−25〜100');
   });
 });
+
+test.describe('PackingSpec バルカー', () => {
+  test.it('UHP は UH シリーズ、MLP・MLR は UN・ML シリーズの圧力（単体・BR使用）', () => {
+    assert.deepEqual(P.PackingSpec.UHP.Rows.map((r) => [r[1], r[5]]), [[20.6, 44.1], [13.7, 34.3], [17.2, 34.3], [13.7, 34.3]]);
+    ['MLP', 'MLR'].forEach((k) => assert.deepEqual(P.PackingSpec[k].Rows.map((r) => [r[1], r[5]]), [[34.3, 68.6], [13.7, 34.3], [20.6, 44.1], [13.7, 34.3]]));
+    assert.deepEqual(P.PackingSpec.UHP.Rows.map((r) => r[4]), ['−20〜80', '−30〜80', '−25〜120', '−10〜150']);
+  });
+});
