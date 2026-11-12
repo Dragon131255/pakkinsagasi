@@ -399,3 +399,14 @@ test.describe('PackingSpec ウェアリング', () => {
     assert.equal(P.PackingSpec.WR, undefined); assert.equal(P.PackingSpec.WPG, undefined);
   });
 });
+
+test.describe('ORingSpec', () => {
+  test.it('はみ出し限界はさくらシールの表（A70・A80・A90 × 5区分）', () => {
+    const e = P.ORingSpec.Extrusion;
+    assert.equal(e.Ranges.length, 5);
+    assert.deepEqual(e.Rows.map((r) => r[1]), [[0.40, 0.25, 0.15, 0.10, 0.04], [0.60, 0.50, 0.35, 0.20, 0.15], [0.70, 0.60, 0.50, 0.40, 0.25]]);
+    // 圧力が高いほどすきまの上限は小さい
+    e.Rows.forEach((r) => r[1].forEach((v, i) => { if (i) assert.ok(v < r[1][i - 1]); }));
+    assert.equal(P.ORingSpec.Materials[0][2], '−30〜100');
+  });
+});

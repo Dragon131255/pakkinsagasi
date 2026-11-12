@@ -74,6 +74,10 @@
   table.spec td.st { background: #FFF3E0; color: #BF360C; }
   table.spec td.st[rowspan] { border-bottom: 0; }
   table.spec td small { font-size: 12px; }
+  .specWrap { overflow-x: auto; }
+  table.spec.ext { min-width: 420px; }
+  table.spec th.sub { background: #E57373; font-size: 11px; font-weight: normal; }
+  table.spec td.sg { background: #FFEBEE; color: #B71C1C; }
   table.spec td b { font-size: 16px; }
   div.spec { font-size: 12px; color: var(--sub); margin: 0 0 8px; word-break: break-all; }
   div.spec.none { background: #ECEFF1; color: #455A64; border-left: 6px solid var(--mk, var(--main)); border-radius: 6px; padding: 8px 10px; font-size: 13px; }
@@ -551,6 +555,24 @@
     });
     return ph;
   }
+  // Oリングの使用範囲：材質ごとの使用温度と、バックアップリングなしのはみ出し限界（Oリングの結果の下に1回だけ出す）
+  function oringSpecHtml() {
+    var o = Pakkin.ORingSpec, e = o.Extrusion;
+    return '<h2>Oリングの使用範囲</h2>'
+      + '<table class="spec"><tr><th class="sc">材質</th><th class="sc">硬さ</th><th class="sv">最高速度<br>(m/s)</th><th class="st">温度<br>(℃)</th></tr>'
+      + o.Materials.map(function (m, i) {
+        return '<tr><td class="sc">' + esc(m[0]) + '</td><td class="sc">' + esc(m[1]) + '</td>'
+          + (i === 0 ? '<td class="sv" rowspan="' + o.Materials.length + '">掲載なし</td>' : '')
+          + '<td class="st"><b>' + esc(m[2]) + '</b></td></tr>';
+      }).join('') + '</table>'
+      + '<div class="spec note">温度は推奨値。出典：さくらシール 各材質のページ https://www.sakura-seal.co.jp/category/1928607.html</div>'
+      + '<div class="specWrap"><table class="spec ext"><tr><th class="sc" rowspan="2">硬さ</th><th class="sp" colspan="' + e.Ranges.length + '">使用圧力 MPa {kgf/㎠} ごとの すきまの上限 (mm)</th></tr><tr>'
+      + e.Ranges.map(function (r) { return '<th class="sp sub">' + esc(r[0]) + '<br>{' + esc(r[1]) + '}</th>'; }).join('') + '</tr>'
+      + e.Rows.map(function (r) {
+        return '<tr><td class="sc">' + esc(r[0]) + '</td>' + r[1].map(function (v) { return '<td class="sg"><b>' + v.toFixed(2) + '</b></td>'; }).join('') + '</tr>';
+      }).join('') + '</table></div>'
+      + '<div class="spec note">はみ出し限界（バックアップリングなし）。すきまは直径すきま＝シリンダ内径 − ピストン外径。これを超えるときはバックアップリングを併用する。出典：さくらシール「Oリングのはみ出し」 ' + esc(e.Source) + '</div>';
+  }
   function oringHtml(res, prefix) {
     var html = '';
     ['P', 'G'].forEach(function (s) {
@@ -578,6 +600,7 @@
           + '</dl></div>';
       });
     });
+    if (html) html += oringSpecHtml();
     return html;
   }
   // 図を、選んだカードの種類（Oリングの断面図／パッキンの寸法指示図）にして寸法を示す

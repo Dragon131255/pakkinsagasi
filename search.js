@@ -482,8 +482,27 @@
     return all;
   }
 
+  // ---- Oリングの使用範囲（2026-11-12 追加、ユーザー指示。出典：さくらシール）----
+  // Materials：[材質, 硬さ, 使用温度範囲の推奨値 ℃, ページ]。速度は出典に記載なし
+  // Extrusion：バックアップリングなしのときの はみ出し限界（直径すきまの上限 mm）。Ranges は使用圧力の区分 [MPa, kgf/㎠]
+  var ORingSpec = {
+    Materials: [
+      ['NBR-70-1（1種A）', 'A70', '−30〜100', 'https://www.sakura-seal.co.jp/category/1995113.html'],
+      ['NBR-90（1種B）', 'A90', '−20〜100', 'https://www.sakura-seal.co.jp/category/1995741.html'],
+      ['NBR-70-2（2種）', 'A70', '−20〜100', 'https://www.sakura-seal.co.jp/category/1996466.html'],
+      ['FKM-70（4種D）', 'A70', '−20〜230', 'https://www.sakura-seal.co.jp/category/1995114.html'],
+      ['VMQ-70（4種C）', 'A70', '−50〜200', 'https://www.sakura-seal.co.jp/category/1995739.html'],
+      ['EPDM-70', 'A70', '−40〜130', 'https://www.sakura-seal.co.jp/category/1996698.html']
+    ],
+    Extrusion: {
+      Ranges: [['3.43 以下', '35 以下'], ['3.43〜6.86', '35〜70'], ['6.86〜10.29', '70〜105'], ['10.29〜13.72', '105〜140'], ['13.72〜20.58', '140〜210']],
+      Rows: [['A70', [0.40, 0.25, 0.15, 0.10, 0.04]], ['A80', [0.60, 0.50, 0.35, 0.20, 0.15]], ['A90', [0.70, 0.60, 0.50, 0.40, 0.25]]],
+      Source: 'https://www.sakura-seal.co.jp/category/1929183.html'
+    }
+  };
+
   var api = { findAllByName: findAllByName, parseTable: parseTable, findORing: findORing, parsePackingTable: parsePackingTable, findPacking: findPacking, DustProducts: DustProducts, WearProducts: WearProducts, MaxResults: MaxResults,
-    PackingProducts: PackingProducts, PackingSpec: PackingSpec, TrelleborgProducts: TrelleborgProducts, NameMaxResults: NameMaxResults, formatPackingTol: formatPackingTol };
+    PackingProducts: PackingProducts, PackingSpec: PackingSpec, ORingSpec: ORingSpec, TrelleborgProducts: TrelleborgProducts, NameMaxResults: NameMaxResults, formatPackingTol: formatPackingTol };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Pakkin = api;
 })(this);
