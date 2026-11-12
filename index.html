@@ -61,6 +61,11 @@
   .ring dd { margin: 0; }
   .ring dd b { font-size: 15px; }
   .ring .tol { display: inline-block; margin-left: 8px; padding: 0 6px; border-radius: 4px; background: #FFF3E0; color: #E65100; font-size: 13px; font-weight: bold; }
+  table.spec { width: 100%; border-collapse: collapse; font-size: 13px; margin: 0 0 4px; }
+  table.spec th, table.spec td { border: 1px solid var(--line); padding: 4px 6px; text-align: center; }
+  table.spec th { background: #ECEFF1; font-weight: bold; }
+  table.spec td:first-child { text-align: left; }
+  div.spec { font-size: 12px; color: var(--sub); margin: 0 0 8px; word-break: break-all; }
   #faceFig img { width: 100%; height: auto; display: block; }
   #pkFig img { width: 100%; height: auto; display: block; margin-bottom: 12px; }
   .ring.pk { cursor: pointer; }
@@ -494,6 +499,17 @@
     });
     return h;
   }
+  // Uパッキンの使用範囲（常用最高圧力・最高速度・温度）。製品の見出しの下に出す
+  function specHtml(product) {
+    var sp = Pakkin.PackingSpec[product];
+    if (!sp) return '<div class="spec none">使用範囲（圧力・速度・温度）：メーカーの公開資料に記載なし。カタログで確認してください</div>';
+    return '<table class="spec"><tr><th>条件</th><th>常用最高圧力<br>MPa {kgf/㎠}</th><th>最高速度<br>(m/s)</th><th>温度<br>(℃)</th></tr>'
+      + sp.Rows.map(function (x, i) {
+        return '<tr><td>' + esc(x[0]) + '</td><td>' + x[1] + ' {' + x[2] + '}</td><td>' + esc(x[3]) + '</td>'
+          + (i === 0 ? '<td rowspan="' + sp.Rows.length + '">' + esc(sp.Temp) + '</td>' : '') + '</tr>';
+      }).join('')
+      + '</table><div class="spec note">' + esc(sp.Note) + '。出典：' + esc(sp.Source) + '</div>';
+  }
   function packingHtml(pr, br) {
     var useName = { Piston: 'ピストン用', Rod: 'ロッド用', Both: 'ピストン・ロッド両用' };
     var ph = '', prev = null, idx = 0;
@@ -501,6 +517,7 @@
       if (r.Product !== prev) {
         var n = pr.Candidates.filter(function (x) { return x.Product === r.Product; }).length;
         ph += '<h2>' + esc(r.Product) + 'パッキン（' + n + ' 件）' + mkTag(r.Product) + '</h2>'; prev = r.Product; idx = 0;
+        ph += specHtml(r.Product);
       }
       // 溝幅の記号は図に合わせる（UPH の図は HA・HB）
       var wk = br === 'None' ? 'GA' : 'GB', wl = r.Product === 'UPH' ? wk.replace('G', 'H') : wk;
