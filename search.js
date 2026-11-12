@@ -269,12 +269,12 @@
   var PackingDiaTol = 0.5, PackingWidthTol = 0.5;   // d・D・溝幅の許容差 [mm]
   var PackingProducts = ['SKY', 'KY', 'UHP', 'MLP', 'MLR', 'UPH'];   // 検索結果に出す製品（阪上は一時的に SKY・KY だけ）
   // 使用範囲（各メーカーのホームページ・カタログの値。2026-11-12 取得、ユーザー指示）
-  //   Rows：条件ごとの 常用最高圧力 [MPa]・{kgf/㎠}・最高速度 [m/s]。Temp：温度 [℃]。[ ] 内は FKM
+  //   Head：表の1列目の見出し（省略時は「材質」。SKY・KY は「条件」）。Rows：材質（または条件）ごとの 常用最高圧力 [MPa]・{kgf/㎠}・最高速度 [m/s]。Temp：温度 [℃]。[ ] 内は FKM
   var PackingSpec = {
     'SKY': { Rows: [['単体（はみ出しすきま H9/f8）', 14, 140, '1 [0.5]'], ['バックアップリング併用', 21, 210, '0.5'], ['標準バック＋高圧バックアップ併用', 28, 280, '0.5']],
-      Temp: '−10〜80 [−5〜150]', Note: '[ ] 内は FKM', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/hydraulic-seals/sky' },
+      Temp: '−10〜80 [−5〜150]', Head: '条件', Note: '材質は NBR（RN906）。[ ] 内は FKM（RF905・RF907）', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/hydraulic-seals/sky' },
     'KY': { Rows: [['単体（はみ出しすきま H9/f8）', 15, 150, '1 [0.5]'], ['バックアップリング併用', 30, 300, '0.5'], ['標準バック＋高圧バックアップ併用', 35, 350, '0.5']],
-      Temp: '−10〜80 [−5〜150]', Note: '[ ] 内は FKM', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/hydraulic-seals/ky' },
+      Temp: '−10〜80 [−5〜150]', Head: '条件', Note: '材質は NBR（RN906）。[ ] 内は FKM（RF905・RF907）', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/hydraulic-seals/ky' },
     // NOK UPH：NOK の公開資料に値がないため、販売店（モノタロウ）の商品ページの値（2026-11-12 ユーザー指示）。kgf/㎠ は MPa から換算
     'UPH': { Rows: [['ニトリルゴム（A505）', 14, 143, '0.008〜1.0']],
       Temp: '−25〜100', Note: 'NOK の公式資料ではなく販売店の掲載値。kgf/㎠ は MPa から換算。FKM（F357）の値は掲載なし', Source: 'モノタロウ NOK パッキン UPH型 https://www.monotaro.com/g/00269611/' },
@@ -296,7 +296,7 @@
       Note: '販売店が掲載しているバルカーの表の値（参考値・保証値ではない）', Source: 'パッキンランド「パッキンの使用範囲 - バルカー」 https://www.packing.co.jp/PACKING/vqpacking/vqpackingsiyohani1.htm' },
     'LBH': { Rows: [['ニトリルゴム（A505）', null, null, null]],
       Temp: '−25〜100', Note: 'NOK の公式資料ではなく販売店の掲載値。速度は掲載なし', Source: 'モノタロウ NOK パッキンLBHシリーズ https://www.monotaro.com/g/00269613/' },
-    'DKI': { Rows: [['アイアンラバー（U801）', null, null, null]],
+    'DKI': { Rows: [['アイアンラバー（U801）＋金属環 SPCC', null, null, null]],
       Temp: '−35〜100', Note: 'NOK の公式資料ではなく販売店の掲載値。速度は掲載なし', Source: 'モノタロウ NOK パッキンDKIシリーズ https://www.monotaro.com/g/00269612/' },
     // ---- ウェアリング（2026-11-12 追加、ユーザー指示）。阪上の表は圧力「-」。WR（NOK）・WPG（バルカー）は製品の値がないので材質（WPG は材料の適用温度も）だけ ----
     'SW': { Rows: [['布入りフェノール（PB201）', null, null, '3']], Temp: '−55〜120', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/wear-rings-and-bearings/sw' },

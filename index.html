@@ -519,7 +519,7 @@
     var sp = Pakkin.PackingSpec[product];
     var mk = mkClass(product);
     if (!sp) return '<div class="spec none ' + mk + '">使用範囲（圧力・速度・温度）：メーカーの公開資料に記載なし。カタログで確認してください</div>';
-    return '<table class="spec ' + mk + '"><tr><th class="sc">条件</th><th class="sp">常用最高圧力<br>MPa {kgf/㎠}</th><th class="sv">最高速度<br>(m/s)</th><th class="st">温度<br>(℃)</th></tr>'
+    return '<table class="spec ' + mk + '"><tr><th class="sc">' + esc(sp.Head || '材質') + '</th><th class="sp">常用最高圧力<br>MPa {kgf/㎠}</th><th class="sv">最高速度<br>(m/s)</th><th class="st">温度<br>(℃)</th></tr>'
       + sp.Rows.map(function (x, i) {
         // x：[条件, MPa, kgf/㎠, 速度, 温度（材質ごと。なければ sp.Temp を全行で1つ）, BR使用時 MPa, BR使用時 kgf/㎠]
         var p = x[1] == null ? '―' : '<b>' + x[1] + '</b> {' + x[2] + '}' + (x[5] != null ? '<br><small>BR使用 <b>' + x[5] + '</b> {' + x[6] + '}</small>' : '');
