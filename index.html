@@ -78,6 +78,11 @@
   table.spec.ext { min-width: 420px; }
   table.spec th.sub { background: #E57373; font-size: 11px; font-weight: normal; }
   table.spec td.sg { background: #FFEBEE; color: #B71C1C; }
+  /* Oリングの使用範囲：硬さの札（2つの表で同じ色）と、材質の系統ごとの色 */
+  .hd { display: inline-block; padding: 1px 8px; border-radius: 10px; color: #fff; font-weight: bold; font-size: 12px; }
+  .hd-A70 { background: #00897B; } .hd-A80 { background: #5E35B1; } .hd-A90 { background: #D81B60; }
+  table.spec td.mt { border-left: 5px solid var(--mt); background: #F5F7F8; text-align: left; }
+  .mt-NBR { --mt: #1E88E5; } .mt-FKM { --mt: #43A047; } .mt-VMQ { --mt: #FB8C00; } .mt-EPDM { --mt: #8E24AA; }
   table.spec td b { font-size: 16px; }
   div.spec { font-size: 12px; color: var(--sub); margin: 0 0 8px; word-break: break-all; }
   div.spec.none { background: #ECEFF1; color: #455A64; border-left: 6px solid var(--mk, var(--main)); border-radius: 6px; padding: 8px 10px; font-size: 13px; }
@@ -562,10 +567,13 @@
   // Oリングの使用範囲：材質ごとの使用温度と、バックアップリングなしのはみ出し限界（Oリングの結果の下に1回だけ出す）
   function oringSpecHtml() {
     var o = Pakkin.ORingSpec, e = o.Extrusion;
+    var hd = function (x) { return '<span class="hd hd-' + esc(x) + '">' + esc(x) + '</span>'; };
+    // すきまの上限：大きい（はみ出しにくい）ほど緑、小さいほど赤
+    var gap = function (v) { var t = Math.min(1, v / 0.7), hue = Math.round(t * 120); return 'background:hsl(' + hue + ',75%,82%);color:hsl(' + hue + ',80%,24%)'; };
     return '<h2>Oリングの使用範囲</h2>'
       + '<table class="spec"><tr><th class="sc">材質</th><th class="sc">硬さ</th><th class="sv">最高速度<br>(m/s)</th><th class="st">温度<br>(℃)</th></tr>'
       + o.Materials.map(function (m, i) {
-        return '<tr><td class="sc">' + esc(m[0]) + '</td><td class="sc">' + esc(m[1]) + '</td>'
+        return '<tr><td class="mt mt-' + esc(m[0].split('-')[0]) + '">' + esc(m[0]) + '</td><td class="sc">' + hd(m[1]) + '</td>'
           + (i === 0 ? '<td class="sv" rowspan="' + o.Materials.length + '">掲載なし</td>' : '')
           + '<td class="st"><b>' + esc(m[2]) + '</b></td></tr>';
       }).join('') + '</table>'
@@ -573,9 +581,9 @@
       + '<div class="specWrap"><table class="spec ext"><tr><th class="sc" rowspan="2">硬さ</th><th class="sp" colspan="' + e.Ranges.length + '">使用圧力 MPa {kgf/㎠} ごとの すきまの上限 (mm)</th></tr><tr>'
       + e.Ranges.map(function (r) { return '<th class="sp sub">' + esc(r[0]) + '<br>{' + esc(r[1]) + '}</th>'; }).join('') + '</tr>'
       + e.Rows.map(function (r) {
-        return '<tr><td class="sc">' + esc(r[0]) + '</td>' + r[1].map(function (v) { return '<td class="sg"><b>' + v.toFixed(2) + '</b></td>'; }).join('') + '</tr>';
+        return '<tr><td class="sc">' + hd(r[0]) + '</td>' + r[1].map(function (v) { return '<td class="sg" style="' + gap(v) + '"><b>' + v.toFixed(2) + '</b></td>'; }).join('') + '</tr>';
       }).join('') + '</table></div>'
-      + '<div class="spec note">はみ出し限界（バックアップリングなし）。すきまは直径すきま＝シリンダ内径 − ピストン外径。これを超えるときはバックアップリングを併用する。出典：さくらシール「Oリングのはみ出し」 ' + esc(e.Source) + '</div>';
+      + '<div class="spec note">はみ出し限界（バックアップリングなし）。緑ほどすきまに余裕があり、赤ほど小さいすきまが必要。すきまは直径すきま＝シリンダ内径 − ピストン外径。これを超えるときはバックアップリングを併用する。出典：さくらシール「Oリングのはみ出し」 ' + esc(e.Source) + '</div>';
   }
   // Oリングのカードに出す標準材質（JIS B 2401 の 1種A）。ほかの材質は「Oリングの使用範囲」の表
   function orMatHtml() {
