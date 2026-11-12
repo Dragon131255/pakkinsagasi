@@ -368,6 +368,10 @@ test.describe('PackingSpec（使用範囲）', () => {
     assert.deepEqual(P.PackingSpec.SKY.Rows.map((r) => r[1]), [14, 21, 28]);
     assert.deepEqual(P.PackingSpec.KY.Rows.map((r) => r[1]), [15, 30, 35]);
     // kgf/㎠ は MPa の 10 倍で書かれている
-    Object.values(P.PackingSpec).forEach((s) => s.Rows.forEach((r) => assert.equal(r[2], r[1] * 10)));
+    [P.PackingSpec.SKY, P.PackingSpec.KY].forEach((s) => s.Rows.forEach((r) => assert.equal(r[2], r[1] * 10)));
+  });
+  test.it('UPH はモノタロウの値（14 MPa・0.008〜1.0 m/s・−25〜100℃）', () => {
+    assert.deepEqual(P.PackingSpec.UPH.Rows[0].slice(1), [14, 143, '0.008〜1.0']);
+    assert.equal(P.PackingSpec.UPH.Temp, '−25〜100');
   });
 });
