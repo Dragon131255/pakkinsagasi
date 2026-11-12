@@ -462,6 +462,7 @@
         + '<dt class="cD">D</dt><dd><b>' + r.D2 + '</b>' + tolHtml(r.TolOuter) + '</dd>'
         + '<dt class="cW">' + (W_LABEL[r.Product] || '溝幅') + '</dt><dd><b>' + r.Width + '</b>' + tolHtml(r.TolWidth) + '</dd>'
         + (r.DiaD1 && C_LABEL[r.Product] ? '<dt class="cC">' + C_LABEL[r.Product] + '</dt><dd><b>' + esc(r.DiaD1) + '</b>' + tolHtml(r.TolD1) + '</dd>' : '')
+        + (Pakkin.PackingMaterial[r.Product] ? '<dt>材質</dt><dd>' + esc(Pakkin.PackingMaterial[r.Product]) + '</dd>' : '')
         + '<dt>メーカー</dt><dd>' + mkTag(r.Product) + '</dd>'
         + '</dl></div>';
       di++;
