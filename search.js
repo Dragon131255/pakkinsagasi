@@ -297,7 +297,14 @@
     'LBH': { Rows: [['ニトリルゴム（A505）', null, null, null]],
       Temp: '−25〜100', Note: 'NOK の公式資料ではなく販売店の掲載値。速度は掲載なし', Source: 'モノタロウ NOK パッキンLBHシリーズ https://www.monotaro.com/g/00269613/' },
     'DKI': { Rows: [['アイアンラバー（U801）', null, null, null]],
-      Temp: '−35〜100', Note: 'NOK の公式資料ではなく販売店の掲載値。速度は掲載なし', Source: 'モノタロウ NOK パッキンDKIシリーズ https://www.monotaro.com/g/00269612/' }
+      Temp: '−35〜100', Note: 'NOK の公式資料ではなく販売店の掲載値。速度は掲載なし', Source: 'モノタロウ NOK パッキンDKIシリーズ https://www.monotaro.com/g/00269612/' },
+    // ---- ウェアリング（2026-11-12 追加、ユーザー指示）。阪上の表は圧力「-」。WR（NOK）・WPG（バルカー）は公開資料・販売店とも値なし ----
+    'SW': { Rows: [['布入りフェノール（PB201）', null, null, '3']], Temp: '−55〜120', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/wear-rings-and-bearings/sw' },
+    'SWA': { Rows: [['布入りフェノール（PB201）', null, null, '3']], Temp: '−55〜120', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/wear-rings-and-bearings/swa' },
+    'SWB': { Rows: [['布入りフェノール（PB251）', null, null, '3']], Temp: '−55〜120', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/wear-rings-and-bearings/swb' },
+    'SWO': { Rows: [['布入りポリエステル（PB271）', null, null, '3']], Temp: '−55〜120', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/wear-rings-and-bearings/swo' },
+    'WPL': { Rows: [['布入りフェノール樹脂（432）', 44.1, 450, '0.04〜1']],
+      Temp: '−30〜150', Note: '販売店が掲載しているバルカーの表の値（参考値・保証値ではない）', Source: 'パッキンランド「パッキンの使用範囲 - バルカー」 https://www.packing.co.jp/PACKING/vqpacking/vqpackingsiyohani1.htm' }
   };
 
   // 溝寸法の公差（出典：阪上製作所の寸法指示図）

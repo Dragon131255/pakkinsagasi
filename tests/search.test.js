@@ -391,3 +391,11 @@ test.describe('PackingSpec ダストシール', () => {
     assert.equal(P.PackingSpec.LBH.Temp, '−25〜100'); assert.equal(P.PackingSpec.DKI.Temp, '−35〜100');
   });
 });
+
+test.describe('PackingSpec ウェアリング', () => {
+  test.it('阪上4製品は 速度 3 m/s・−55〜120℃、WPL は 44.1 MPa', () => {
+    ['SW', 'SWA', 'SWB', 'SWO'].forEach((k) => { assert.equal(P.PackingSpec[k].Rows[0][3], '3'); assert.equal(P.PackingSpec[k].Temp, '−55〜120'); });
+    assert.deepEqual(P.PackingSpec.WPL.Rows[0].slice(1), [44.1, 450, '0.04〜1']);
+    assert.equal(P.PackingSpec.WR, undefined); assert.equal(P.PackingSpec.WPG, undefined);
+  });
+});

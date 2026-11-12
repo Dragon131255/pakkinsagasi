@@ -469,7 +469,7 @@
     wr.Candidates.forEach(function (r) {
       if (r.Product !== prev) {
         var n = wr.Candidates.filter(function (x) { return x.Product === r.Product; }).length;
-        h += '<h2>' + esc(r.Product) + '（' + n + ' 件）' + mkTag(r.Product) + '</h2>'; prev = r.Product; idx = 0;
+        h += '<h2>' + esc(r.Product) + '（' + n + ' 件）' + mkTag(r.Product) + '</h2>' + specHtml(r.Product); prev = r.Product; idx = 0;
       }
       var wl = W_LABEL[r.Product] || '溝幅';
       var v = [{ k: 'd', l: 'd', v: withTol(r.D1, r.TolInner) }, { k: 'D', l: 'D', v: withTol(r.D2, r.TolOuter) }, { k: 'W', l: wl, v: withTol(r.Width, r.TolWidth) }];
@@ -523,7 +523,7 @@
           : i === 0 ? '<td class="st" rowspan="' + sp.Rows.length + '"><b>' + esc(sp.Temp) + '</b></td>' : '';
         return '<tr><td class="sc">' + esc(x[0]) + '</td><td class="sp">' + p + '</td><td class="sv">' + (x[3] == null ? '掲載なし' : '<b>' + esc(x[3]) + '</b>') + '</td>' + t + '</tr>';
       }).join('')
-      + '</table><div class="spec note">' + esc(sp.Note) + '。出典：' + esc(sp.Source) + '</div>';
+      + '</table><div class="spec note">' + (sp.Note ? esc(sp.Note) + '。' : '') + '出典：' + esc(sp.Source) + '</div>';
   }
   function packingHtml(pr, br) {
     var useName = { Piston: 'ピストン用', Rod: 'ロッド用', Both: 'ピストン・ロッド両用' };
