@@ -304,7 +304,16 @@
     'SWB': { Rows: [['布入りフェノール（PB251）', null, null, '3']], Temp: '−55〜120', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/wear-rings-and-bearings/swb' },
     'SWO': { Rows: [['布入りポリエステル（PB271）', null, null, '3']], Temp: '−55〜120', Source: '阪上製作所 製品ページ https://www.sakagami-ltd.co.jp/products/wear-rings-and-bearings/swo' },
     'WPL': { Rows: [['布入りフェノール樹脂（432）', 44.1, 450, '0.04〜1']],
-      Temp: '−30〜150', Note: '販売店が掲載しているバルカーの表の値（参考値・保証値ではない）', Source: 'パッキンランド「パッキンの使用範囲 - バルカー」 https://www.packing.co.jp/PACKING/vqpacking/vqpackingsiyohani1.htm' }
+      Temp: '−30〜150', Note: '販売店が掲載しているバルカーの表の値（参考値・保証値ではない）', Source: 'パッキンランド「パッキンの使用範囲 - バルカー」 https://www.packing.co.jp/PACKING/vqpacking/vqpackingsiyohani1.htm' },
+    // ---- 海外：トレルボルグ（2026-11-12 追加、ユーザー指示。カタログの OPERATING CONDITIONS を日本語にしたもの）----
+    'TGR-P': { Rows: [['Turcon シールリング＋Oリング', 60, 612, '15']], Temp: '−45〜200', Note: '温度は Oリングの材質による。往復動の周波数は 5 Hz まで。kgf/㎠ は MPa から換算。最大値は同時には使えない', Source: 'トレルボルグ Hydraulic Seals Catalog（Metric、2026年10月版） PDF p.249' },
+    'TSS2K-P': { Rows: [['Turcon シールリング＋Oリング', 60, 612, '15']], Temp: '−45〜200', Note: '温度は Oリングの材質による。往復動の周波数は 5 Hz まで。kgf/㎠ は MPa から換算。最大値は同時には使えない', Source: 'トレルボルグ Hydraulic Seals Catalog（Metric、2026年10月版） PDF p.311' },
+    'TSS2K-R': { Rows: [['Turcon シールリング＋Oリング', 60, 612, '15']], Temp: '−45〜200', Note: '温度は Oリングの材質による。往復動の周波数は 5 Hz まで。kgf/㎠ は MPa から換算。最大値は同時には使えない', Source: 'トレルボルグ Hydraulic Seals Catalog（Metric、2026年10月版） PDF p.49' },
+    'TGR-R': { Rows: [['Turcon シールリング＋Oリング', 60, 612, '15']], Temp: '−45〜200', Note: '温度は Oリングの材質による。往復動の周波数は 5 Hz まで。kgf/㎠ は MPa から換算。最大値は同時には使えない', Source: 'トレルボルグ Hydraulic Seals Catalog（Metric、2026年10月版） PDF p.153' },
+    'TEX2': { Rows: [['Turcon', null, null, '15', '−45〜200'], ['Zurcon Z53・Z54', null, null, '2', '−45〜110'], ['Zurcon Z80', null, null, '2', '−60〜80']],
+      Note: 'スクレーパーのため圧力の値はない。温度は Oリングの材質にもよる。最大値は同時には使えない', Source: 'トレルボルグ Hydraulic Seals Catalog（Metric、2026年10月版） PDF p.437' },
+    'WRM': { Rows: [['NBR（90 Shore A）', null, null, '1']], Temp: '−30〜110', Note: 'スクレーパーのため圧力の値はない。最大値は同時には使えない', Source: 'トレルボルグ Hydraulic Seals Catalog（Metric、2026年10月版） PDF p.511' },
+    'SLY-P': { Rows: [['Turcite', null, null, '15']], Temp: '−60〜150（材質により 200）', Note: 'ウェアリングのため圧力の値はない', Source: 'トレルボルグ Hydraulic Seals Catalog（Metric、2026年10月版） PDF p.566' }
   };
 
   // 溝寸法の公差（出典：阪上製作所の寸法指示図）

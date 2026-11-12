@@ -410,3 +410,11 @@ test.describe('ORingSpec', () => {
     assert.equal(P.ORingSpec.Materials[0][2], '−30〜100');
   });
 });
+
+test.describe('PackingSpec トレルボルグ', () => {
+  test.it('海外の7製品すべてに使用範囲がある（シール4製品は 60 MPa・15 m/s）', () => {
+    Object.values(P.TrelleborgProducts).flat().forEach((k) => assert.ok(P.PackingSpec[k], k));
+    ['TGR-P', 'TSS2K-P', 'TSS2K-R', 'TGR-R'].forEach((k) => assert.deepEqual(P.PackingSpec[k].Rows[0].slice(1, 4), [60, 612, '15']));
+    assert.equal(P.PackingSpec.WRM.Temp, '−30〜110');
+  });
+});

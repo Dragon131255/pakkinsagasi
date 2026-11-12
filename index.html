@@ -497,7 +497,7 @@
       var t = TB[r.Product];
       if (r.Product !== prev) {
         var n = tr.Candidates.filter(function (x) { return x.Product === r.Product; }).length;
-        h += '<h2>' + esc(t.name) + '（' + t.use + '・' + n + ' 件）' + mkTag(r.Product) + '</h2>'; prev = r.Product; idx = 0;
+        h += '<h2>' + esc(t.name) + '（' + t.use + '・' + n + ' 件）' + mkTag(r.Product) + '</h2>' + specHtml(r.Product); prev = r.Product; idx = 0;
       }
       var v = [{ k: 'd', l: t.d, v: withTol(r.D1, r.TolInner) }, { k: 'D', l: t.D, v: withTol(r.D2, r.TolOuter) }, { k: 'W', l: t.W, v: withTol(r.Width, r.TolWidth) }];
       if (r.DiaD1 && t.C) v.push({ k: 'C', l: t.C, v: withTol(r.DiaD1, r.TolD1) });
